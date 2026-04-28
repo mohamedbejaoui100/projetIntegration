@@ -1,6 +1,15 @@
 package com.edu3d.plateforme3d.controller;
 
 
+import com.edu3d.plateforme3d.security.CustomUserDetails;
+import com.edu3d.plateforme3d.service.EnrollmentService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
+
 @RestController
 @RequestMapping("/api/enroll")
 @RequiredArgsConstructor
@@ -13,10 +22,10 @@ public class EnrollmentController {
     @ResponseStatus(HttpStatus.CREATED)
     public ResponseEntity<String> enroll(
             @RequestParam Long courseId,
-            @AuthenticationPrincipal UserDetails userDetails
+            @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
-        Long studentId = ((CustomUserDetails) userDetails).getId();
-        enrollmentService.enrollStudent(studentId, courseId);
+        enrollmentService.enrollStudent(userDetails.getId(), courseId);
         return ResponseEntity.status(201).body("Inscription réussie !");
     }
 }
+

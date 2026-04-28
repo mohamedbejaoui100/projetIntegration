@@ -1,10 +1,16 @@
 package com.edu3d.plateforme3d.controller;
 
-// AuthController.java
+import com.edu3d.plateforme3d.dto.request.*;
+import com.edu3d.plateforme3d.dto.response.AuthResponse;
+import com.edu3d.plateforme3d.service.AuthService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.*;
+
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
-@Tag(name = "Authentification")
 public class AuthController {
 
     private final AuthService authService;
@@ -20,3 +26,4 @@ public class AuthController {
         return authService.login(request);
     }
 }
+

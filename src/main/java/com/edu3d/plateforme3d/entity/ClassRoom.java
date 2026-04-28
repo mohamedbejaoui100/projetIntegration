@@ -1,27 +1,20 @@
 package com.edu3d.plateforme3d.entity;
+
 import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "slides")
+@Table(name = "classrooms")
 @Getter @Setter
 @NoArgsConstructor @AllArgsConstructor @Builder
-public class Slide {
+public class ClassRoom {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(nullable = false)
-    private String title;
-
-    @Column(columnDefinition = "TEXT")
-    private String contentText;
-
-    private String object3dUrl;
-
-    @Column(nullable = false)
-    private Integer position;
+    private String name;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "course_id", nullable = false)

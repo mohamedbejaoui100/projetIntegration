@@ -1,13 +1,24 @@
 package com.edu3d.plateforme3d.controller;
 
-// CourseController.java
+import com.edu3d.plateforme3d.dto.request.CourseRequest;
+import com.edu3d.plateforme3d.dto.response.*;
+import com.edu3d.plateforme3d.security.CustomUserDetails;
+import com.edu3d.plateforme3d.service.*;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/courses")
 @RequiredArgsConstructor
-@Tag(name = "Cours")
 public class CourseController {
 
     private final CourseService courseService;
+    private final SlideService slideService;
 
     @GetMapping
     public List<CourseResponse> getAllCourses() {
@@ -24,10 +35,9 @@ public class CourseController {
     @ResponseStatus(HttpStatus.CREATED)
     public CourseResponse createCourse(
             @Valid @RequestBody CourseRequest request,
-            @AuthenticationPrincipal UserDetails userDetails
+            @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
-        Long teacherId = ((CustomUserDetails) userDetails).getId();
-        return courseService.createCourse(request, teacherId);
+        return courseService.createCourse(request, userDetails.getId());
     }
 
     @GetMapping("/{id}/slides")

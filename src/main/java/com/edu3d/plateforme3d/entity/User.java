@@ -1,8 +1,21 @@
 package com.edu3d.plateforme3d.entity;
+
+import com.edu3d.plateforme3d.entity.enums.Role;
+import jakarta.persistence.*;
+import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
 @Entity
 @Table(name = "users")
+@Getter @Setter
+@NoArgsConstructor @AllArgsConstructor @Builder
 public class User {
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(nullable = false)
@@ -16,7 +29,7 @@ public class User {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private Role role; // ADMIN, TEACHER, STUDENT
+    private Role role;
 
     @OneToMany(mappedBy = "teacher", cascade = CascadeType.ALL)
     private List<Course> courses = new ArrayList<>();

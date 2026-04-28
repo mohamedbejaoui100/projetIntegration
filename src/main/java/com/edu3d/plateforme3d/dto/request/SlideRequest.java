@@ -1,5 +1,8 @@
 package com.edu3d.plateforme3d.dto.request;
 
+
+import jakarta.validation.constraints.*;
+
 public record SlideRequest(
         @NotBlank String title,
         String contentText,
