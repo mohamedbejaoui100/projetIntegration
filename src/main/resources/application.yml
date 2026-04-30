@@ -2,22 +2,22 @@ spring:
   datasource:
     url: jdbc:mysql://localhost:3306/edu3d_db?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC
     username: root
-    password:      # ? change ici
+    password:        # ? laisser VIDE si WAMP par défaut
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
     hibernate:
-      ddl-auto: update           # crée les tables automatiquement
+      ddl-auto: update
     show-sql: true
     properties:
       hibernate:
         format_sql: true
-        dialect: org.hibernate.dialect.MySQL8Dialect
+
 
 app:
   jwt:
     secret: edu3d-secret-key-super-longue-pour-la-securite-2024
-    expiration: 86400000         # 24h en millisecondes
+    expiration: 86400000
 
 server:
-  port: 8080
+  port: 8081

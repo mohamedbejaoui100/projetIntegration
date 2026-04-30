@@ -1,0 +1,7 @@
+POST http://localhost:8081/api/auth/register
+
+GET  http://localhost:8081/api/users
+
+amal benjamaa admin123 amal@ieee.org
+mohamed bejaoui 12345678 mohamedbejaoui@ieee.org teacher
+
