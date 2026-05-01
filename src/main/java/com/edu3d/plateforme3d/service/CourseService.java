@@ -50,4 +50,41 @@ public class CourseService {
                 c.getTeacher().getNom(), c.getSlides().size(), c.getCreatedAt()
         );
     }
+    public CourseResponse updateCourse(Long id, CourseRequest request, Long userId) {
+        Course course = courseRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Cours introuvable : " + id));
+
+        // Vérifier que c'est bien le teacher propriétaire ou un admin
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User introuvable"));
+
+        boolean isAdmin = user.getRole().name().equals("ADMIN");
+        boolean isOwner = course.getTeacher().getId().equals(userId);
+
+        if (!isAdmin && !isOwner) {
+            throw new UnauthorizedException("Vous ne pouvez modifier que vos propres cours");
+        }
+
+        course.setTitle(request.title());
+        course.setDescription(request.description());
+
+        return mapToResponse(courseRepository.save(course));
+    }
+
+    public void deleteCourse(Long id, Long userId) {
+        Course course = courseRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Cours introuvable : " + id));
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User introuvable"));
+
+        boolean isAdmin = user.getRole().name().equals("ADMIN");
+        boolean isOwner = course.getTeacher().getId().equals(userId);
+
+        if (!isAdmin && !isOwner) {
+            throw new UnauthorizedException("Vous ne pouvez supprimer que vos propres cours");
+        }
+
+        courseRepository.delete(course);
+    }
 }

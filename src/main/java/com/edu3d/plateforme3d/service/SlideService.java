@@ -43,4 +43,32 @@ public class SlideService {
         return new SlideResponse(s.getId(), s.getTitle(),
                 s.getContentText(), s.getObject3dUrl(), s.getPosition());
     }
+    @Transactional(readOnly = true)
+    public SlideResponse getSlideById(Long id) {
+        Slide slide = slideRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Slide introuvable : " + id));
+        return mapToResponse(slide);
+    }
+
+    public SlideResponse updateSlide(Long id, SlideRequest request) {
+        Slide slide = slideRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Slide introuvable : " + id));
+
+        Course course = courseRepository.findById(request.courseId())
+                .orElseThrow(() -> new ResourceNotFoundException("Cours introuvable"));
+
+        slide.setTitle(request.title());
+        slide.setContentText(request.contentText());
+        slide.setObject3dUrl(request.object3dUrl());
+        slide.setPosition(request.position());
+        slide.setCourse(course);
+
+        return mapToResponse(slideRepository.save(slide));
+    }
+
+    public void deleteSlide(Long id) {
+        Slide slide = slideRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Slide introuvable : " + id));
+        slideRepository.delete(slide);
+    }
 }

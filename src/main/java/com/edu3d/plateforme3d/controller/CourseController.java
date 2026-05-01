@@ -1,9 +1,11 @@
 package com.edu3d.plateforme3d.controller;
 
 import com.edu3d.plateforme3d.dto.request.CourseRequest;
-import com.edu3d.plateforme3d.dto.response.*;
+import com.edu3d.plateforme3d.dto.response.CourseResponse;
+import com.edu3d.plateforme3d.dto.response.SlideResponse;
 import com.edu3d.plateforme3d.security.CustomUserDetails;
-import com.edu3d.plateforme3d.service.*;
+import com.edu3d.plateforme3d.service.CourseService;
+import com.edu3d.plateforme3d.service.SlideService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -20,16 +22,25 @@ public class CourseController {
     private final CourseService courseService;
     private final SlideService slideService;
 
+    // ✅ GET tous les cours — public
     @GetMapping
     public List<CourseResponse> getAllCourses() {
         return courseService.getAllCourses();
     }
 
+    // ✅ GET un cours par ID — public
     @GetMapping("/{id}")
     public CourseResponse getCourse(@PathVariable Long id) {
         return courseService.getCourseById(id);
     }
 
+    // ✅ GET slides d'un cours — public
+    @GetMapping("/{id}/slides")
+    public List<SlideResponse> getCourseSlides(@PathVariable Long id) {
+        return slideService.getSlidesByCourse(id);
+    }
+
+    // ✅ POST créer un cours — TEACHER ou ADMIN
     @PostMapping
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @ResponseStatus(HttpStatus.CREATED)
@@ -40,8 +51,25 @@ public class CourseController {
         return courseService.createCourse(request, userDetails.getId());
     }
 
-    @GetMapping("/{id}/slides")
-    public List<SlideResponse> getCourseSlides(@PathVariable Long id) {
-        return slideService.getSlidesByCourse(id);
+    // ✅ PUT modifier un cours — TEACHER ou ADMIN
+    @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
+    public CourseResponse updateCourse(
+            @PathVariable Long id,
+            @Valid @RequestBody CourseRequest request,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        return courseService.updateCourse(id, request, userDetails.getId());
+    }
+
+    // ✅ DELETE supprimer un cours — TEACHER ou ADMIN
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteCourse(
+            @PathVariable Long id,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        courseService.deleteCourse(id, userDetails.getId());
     }
 }

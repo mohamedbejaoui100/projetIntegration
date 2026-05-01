@@ -16,10 +16,35 @@ public class SlideController {
 
     private final SlideService slideService;
 
+    // ✅ POST créer une slide
     @PostMapping
     @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @ResponseStatus(HttpStatus.CREATED)
     public SlideResponse createSlide(@Valid @RequestBody SlideRequest request) {
         return slideService.createSlide(request);
+    }
+
+    // ✅ GET une slide par ID
+    @GetMapping("/{id}")
+    public SlideResponse getSlide(@PathVariable Long id) {
+        return slideService.getSlideById(id);
+    }
+
+    // ✅ PUT modifier une slide
+    @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
+    public SlideResponse updateSlide(
+            @PathVariable Long id,
+            @Valid @RequestBody SlideRequest request
+    ) {
+        return slideService.updateSlide(id, request);
+    }
+
+    // ✅ DELETE supprimer une slide
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteSlide(@PathVariable Long id) {
+        slideService.deleteSlide(id);
     }
 }
