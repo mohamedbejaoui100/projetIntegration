@@ -118,7 +118,7 @@
             <!-- REGISTER FORM -->
             <form v-else key="register" class="form" @submit.prevent="handleRegister">
               <div class="form-header">
-                <h2>Créer un compte ✨</h2>
+                <h2>Créer un compte </h2>
                 <p>Rejoignez la communauté EDU3D</p>
               </div>
 
@@ -166,7 +166,7 @@
                   <button type="button" v-for="r in roles" :key="r.val"
                     :class="['role-card', { active: registerForm.role === r.val }]"
                     @click="registerForm.role = r.val">
-                    <span class="role-icon">{{ r.icon }}</span>
+
                     <span class="role-label">{{ r.label }}</span>
                   </button>
                 </div>
@@ -274,9 +274,18 @@ async function handleLogin() {
     if (res.ok) {
       localStorage.setItem('token', data.token)
       localStorage.setItem('role', data.role)
-      showToast('Connexion réussie ! Redirection...')
-      setTimeout(() => window.location.href = '/dashboard', 1500)
+      localStorage.setItem('userName', data.email)
+
+      // Redirection selon le rôle
+      if (data.role === 'ADMIN') {
+        window.location.href = '/admin'
+      } else if (data.role === 'TEACHER') {
+        window.location.href = '/teacher'
+      } else {
+        window.location.href = '/student'
+      }
     } else {
+      // ← cette partie manquait !
       showToast('Email ou mot de passe incorrect', 'error')
     }
   } catch {
