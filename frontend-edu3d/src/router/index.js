@@ -8,6 +8,11 @@ const routes = [
     path: '/admin',
     component: () => import('../views/AdminDashboard.vue'),
     meta: { requiresAuth: true, role: 'ADMIN' }
+  },
+  {
+    path: '/teacher',
+    component: () => import('../views/TeacherDashboard.vue'),
+    meta: { requiresAuth: true, role: 'TEACHER' }
   }
 ]
 
@@ -22,7 +27,7 @@ router.beforeEach((to, from) => {
 
   if (to.meta.requiresAuth && !token) return '/login'
   if (to.meta.role && to.meta.role !== role) return '/login'
-  return true   // ← return true au lieu de next()
+  return true
 })
 
 export default router

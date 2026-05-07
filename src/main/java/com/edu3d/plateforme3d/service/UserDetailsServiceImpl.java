@@ -43,12 +43,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
 
         return userRepository.save(user);
     }
-    public User updatePhoto(Long id, String photoUrl) {
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("User introuvable"));
-        user.setPhotoUrl(photoUrl);
-        return userRepository.save(user);
-    }
+
 
     @Transactional
     public void deleteUser(Long id) {

@@ -1,6 +1,8 @@
 amal benjamaa admin123 amal@ieee.org Admin
 
-mohamed bejaoui 12345678 mohamedbejaoui@ieee.org teacher
+mohamed bejaoui 12345678 mohamed@ieee.org teacher
+
+Ibrahim el maazi ibrahim123\* ibrahim@ieee.org Student
 
 
 
@@ -105,6 +107,4 @@ git push
 cd frontend-edu3d
 
 npm run dev
-
-
 

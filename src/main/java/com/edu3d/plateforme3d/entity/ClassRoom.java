@@ -16,7 +16,18 @@ public class ClassRoom {
     @Column(nullable = false)
     private String name;
 
+    @Column(unique = true)
+    private String inviteCode;   // ← code d'invitation unique
+
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "course_id", nullable = false)
+    @JoinColumn(name = "course_id")
     private Course course;
+
+    @PrePersist
+    public void generateCode() {
+        if (this.inviteCode == null) {
+            this.inviteCode = java.util.UUID.randomUUID()
+                    .toString().substring(0, 8).toUpperCase();
+        }
+    }
 }

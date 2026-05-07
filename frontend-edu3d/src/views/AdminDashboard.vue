@@ -32,14 +32,17 @@
       </nav>
 
       <div class="sidebar-footer" v-if="!sidebarCollapsed">
-        <div class="admin-info">
-          <div class="admin-avatar">{{ adminInitial }}</div>
+        <div class="admin-info" @click="activeView = 'profile'" style="cursor:pointer">
+          <div class="admin-avatar-wrap">
+            <img v-if="currentUser.photoUrl" :src="currentUser.photoUrl" class="admin-avatar-img"/>
+            <div v-else class="admin-avatar">{{ adminInitial }}</div>
+          </div>
           <div class="admin-details">
-            <div class="admin-name">{{ adminName }}</div>
-            <div class="admin-role">Administrateur</div>
+            <div class="admin-name">{{ currentUser.nom || adminName }}</div>
+            <div class="admin-role">{{ currentUser.role }}</div>
           </div>
         </div>
-        <button class="logout-btn" @click="logout">
+        <button class="logout-btn" @click="logout" title="Déconnexion">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
             <polyline points="16,17 21,12 16,7"/>
@@ -168,6 +171,7 @@
             </button>
           </div>
 
+
           <!-- Table toolbar -->
           <div class="table-toolbar">
             <div class="search-inline">
@@ -233,93 +237,96 @@
           </div>
         </div>
 
-        <!-- TEACHERS VIEW -->
-        <div v-else-if="activeView === 'teachers'" key="teachers" class="view">
-          <div class="table-toolbar">
-            <div class="search-inline">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-              <input v-model="userSearch" placeholder="Rechercher un enseignant..."/>
-            </div>
-            <button class="btn-add" @click="openModal('create', null, 'TEACHER')">
-              + Ajouter un enseignant
-            </button>
-          </div>
-          <div class="cards-grid">
-            <div class="teacher-card" v-for="(t, i) in teachers.filter(x => x.nom?.toLowerCase().includes(userSearch.toLowerCase()))"
-              :key="t.id" :style="{ animationDelay: i * 0.07 + 's' }">
-              <div class="teacher-card-top">
-                <div class="teacher-avatar" :style="{ background: `hsl(${t.id * 47 % 360}, 60%, 45%)` }">
-                  {{ t.nom?.charAt(0)?.toUpperCase() }}
-                </div>
-                <div class="teacher-actions">
-                  <button class="action-btn edit" @click="openModal('edit', t)">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                  </button>
-                  <button class="action-btn delete" @click="confirmDelete(t)">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><polyline points="3,6 5,6 21,6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
-                  </button>
-                </div>
-              </div>
-              <h4 class="teacher-name">{{ t.nom }}</h4>
-              <p class="teacher-email">{{ t.email }}</p>
-              <div class="teacher-meta">
-                <span class="role-badge teacher">TEACHER</span>
-                <span class="teacher-id">ID #{{ t.id }}</span>
-              </div>
-            </div>
-            <div class="empty-state" v-if="!teachers.length">Aucun enseignant</div>
+        <!-- CLASSROOMS VIEW -->
+        <div v-else-if="activeView === 'classrooms'" key="classrooms" class="view">
+          <div class="empty-state" style="padding:4rem">
+            🏛️ Section Classrooms — à développer
           </div>
         </div>
 
-        <!-- STUDENTS VIEW -->
-        <div v-else-if="activeView === 'students'" key="students" class="view">
-          <div class="table-toolbar">
-            <div class="search-inline">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-              <input v-model="userSearch" placeholder="Rechercher un étudiant..."/>
-            </div>
-            <button class="btn-add" @click="openModal('create', null, 'STUDENT')">
-              + Ajouter un étudiant
-            </button>
-          </div>
-          <div class="table-wrap">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>Étudiant</th>
-                  <th>Email</th>
-                  <th>ID</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr class="table-row" v-for="(s, i) in students.filter(x => x.nom?.toLowerCase().includes(userSearch.toLowerCase()))"
-                  :key="s.id" :style="{ animationDelay: i * 0.04 + 's' }">
-                  <td>
-                    <div class="user-cell">
-                      <div class="user-avatar-sm" style="background: linear-gradient(135deg,#00f5d4,#0891b2)">
-                        {{ s.nom?.charAt(0)?.toUpperCase() }}
-                      </div>
-                      <span class="user-name">{{ s.nom }}</span>
-                    </div>
-                  </td>
-                  <td class="email-cell">{{ s.email }}</td>
-                  <td><span class="user-id">#{{ s.id }}</span></td>
-                  <td>
-                    <div class="action-btns">
-                      <button class="action-btn edit" @click="openModal('edit', s)">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                      </button>
-                      <button class="action-btn delete" @click="confirmDelete(s)">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3,6 5,6 21,6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
+       <!-- PROFILE VIEW -->
+       <div v-else-if="activeView === 'profile'" key="profile" class="view">
+         <div class="profile-page">
+
+           <!-- Cover -->
+           <div class="profile-cover">
+             <div class="profile-avatar-wrap">
+               <div class="profile-avatar-ring">
+                 <img v-if="profileForm.photoUrl" :src="profileForm.photoUrl" class="profile-avatar-img"/>
+                 <div v-else class="profile-avatar-placeholder">{{ adminInitial }}</div>
+               </div>
+             </div>
+           </div>
+
+           <div class="profile-content">
+
+             <!-- Carte info gauche -->
+             <div class="profile-left">
+               <div class="profile-card">
+                 <div class="profile-avatar-display">
+                   <img v-if="currentUser.photoUrl" :src="currentUser.photoUrl" class="profile-avatar-img-lg"/>
+                   <div v-else class="profile-avatar-placeholder-lg">{{ adminInitial }}</div>
+                 </div>
+                 <h3 class="profile-name-display">{{ currentUser.nom }}</h3>
+                 <p class="profile-email-display">{{ currentUser.email }}</p>
+                 <span :class="['role-badge', currentUser.role?.toLowerCase()]">{{ currentUser.role }}</span>
+                 <div class="profile-stats-row">
+                   <div class="p-stat">
+                     <span class="p-stat-val">#{{ currentUser.id }}</span>
+                     <span class="p-stat-label">ID</span>
+                   </div>
+                   <div class="p-stat-divider"></div>
+                   <div class="p-stat">
+                     <span class="p-stat-val" style="color:#22c55e">Actif</span>
+                     <span class="p-stat-label">Statut</span>
+                   </div>
+                 </div>
+               </div>
+             </div>
+
+             <!-- Formulaire droite -->
+             <div class="profile-right">
+               <div class="profile-edit-card">
+                 <h3 class="edit-title">Modifier mon profil</h3>
+
+                 <div class="form-group">
+                   <label>Nom complet</label>
+                   <div class="input-wrap-profile">
+                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15">
+                       <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                       <circle cx="12" cy="7" r="4"/>
+                     </svg>
+                     <input v-model="profileForm.nom" placeholder="Votre nom" class="profile-input"/>
+                   </div>
+                 </div>
+
+                 <div class="form-group">
+                   <label>Email</label>
+                   <div class="input-wrap-profile">
+                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15">
+                       <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                       <polyline points="22,6 12,13 2,6"/>
+                     </svg>
+                     <input v-model="profileForm.email" type="email" placeholder="votre@email.com" class="profile-input"/>
+                   </div>
+                 </div>
+
+
+
+
+
+                 <div class="profile-actions">
+                   <button class="btn-cancel" @click="resetProfileForm">Annuler</button>
+                   <button class="btn-confirm" @click="saveProfile" :disabled="isLoading">
+                     <span v-if="!isLoading">Sauvegarder</span>
+                     <div v-else class="spinner-sm"></div>
+                   </button>
+                 </div>
+               </div>
+             </div>
+           </div>
+         </div>
+       </div>
       </transition>
     </main>
 
@@ -449,18 +456,21 @@ const modal = ref({ show: false, mode: 'create', form: { nom: '', email: '', pas
 const deleteModal = ref({ show: false, user: null })
 const profileModal = ref({ show: false, user: null })
 
+const currentUser = ref({ id: null, nom: '', email: '', role: '', photoUrl: '' })
+const profileForm = ref({ nom: '', email: '', photoUrl: '' })
+
+
 const navItems = computed(() => [
-  { id: 'overview', label: 'Vue globale', icon: svgGrid },
-  { id: 'users',    label: 'Utilisateurs', icon: svgUsers, badge: allUsers.value.length },
-  { id: 'teachers', label: 'Enseignants',  icon: svgTeacher },
-  { id: 'students', label: 'Étudiants',    icon: svgStudent },
+  { id: 'overview',   label: 'Vue globale',  icon: svgGrid },
+  { id: 'users',      label: 'Utilisateurs', icon: svgUsers, badge: allUsers.value.length },
+  { id: 'classrooms', label: 'Classrooms',   icon: svgClass },
+  { id: 'profile',    label: 'Mon Profil',   icon: svgProfile },
 ])
 
 const svgGrid    = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>`
 const svgUsers   = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`
-const svgTeacher = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>`
-const svgStudent = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`
-
+const svgClass   = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>`
+const svgProfile = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`
 const students = computed(() => allUsers.value.filter(u => u.role === 'STUDENT'))
 const teachers = computed(() => allUsers.value.filter(u => u.role === 'TEACHER'))
 const admins   = computed(() => allUsers.value.filter(u => u.role === 'ADMIN'))
@@ -470,21 +480,21 @@ const studentPct = computed(() => allUsers.value.length ? (students.value.length
 const teacherPct = computed(() => allUsers.value.length ? (teachers.value.length / allUsers.value.length) * 100 : 0)
 
 const currentPageTitle = computed(() => {
-  const map = { overview: 'Vue globale', users: 'Utilisateurs', teachers: 'Enseignants', students: 'Étudiants' }
+  const map = { overview: 'Vue globale', users: 'Utilisateurs', classrooms: 'Classrooms', profile: 'Mon Profil' }
   return map[activeView.value] || ''
 })
 
 const statsCards = computed(() => [
   { label: 'Total utilisateurs', val: allUsers.value.length, trend: 12, pct: 75, color: '#00f5d4', bg: 'rgba(0,245,212,0.1)', icon: svgUsers },
-  { label: 'Étudiants',          val: students.value.length, trend: 8,  pct: 60, color: '#6366f1', bg: 'rgba(99,102,241,0.1)', icon: svgStudent },
-  { label: 'Enseignants',        val: teachers.value.length, trend: 5,  pct: 40, color: '#f59e0b', bg: 'rgba(245,158,11,0.1)', icon: svgTeacher },
-  { label: 'Admins',             val: admins.value.length,   trend: 0,  pct: 10, color: '#ef4444', bg: 'rgba(239,68,68,0.1)',  icon: svgGrid },
+  { label: 'Étudiants',          val: students.value.length, trend: 8,  pct: 60, color: '#6366f1', bg: 'rgba(99,102,241,0.1)', icon: svgProfile },
+  { label: 'Enseignants',        val: teachers.value.length, trend: 5,  pct: 40, color: '#f59e0b', bg: 'rgba(245,158,11,0.1)', icon: svgClass },
+  { label: 'Classrooms',         val: 0,                     trend: 3,  pct: 30, color: '#a855f7', bg: 'rgba(168,85,247,0.1)', icon: svgClass },
 ])
 
 const userTabs = computed(() => [
-  { id: 'all',      label: 'Tous',        icon: '👥', count: allUsers.value.length },
-  { id: 'students', label: 'Étudiants',   icon: '🎒', count: students.value.length },
-  { id: 'teachers', label: 'Enseignants', icon: '🧑‍🏫', count: teachers.value.length },
+  { id: 'all',      label: 'Tous',        icon: '', count: allUsers.value.length },
+  { id: 'students', label: 'Étudiants',   icon: '', count: students.value.length },
+  { id: 'teachers', label: 'Enseignants', icon: '', count: teachers.value.length },
 ])
 
 const filteredUsers = computed(() => {
@@ -584,11 +594,51 @@ function handleSearch() {
   userSearch.value = globalSearch.value
 }
 
+async function loadCurrentUser() {
+  try {
+    const email = localStorage.getItem('userName')
+    const res = await api.get('/users')
+    const me = res.data.find(u => u.email === email)
+    if (me) {
+      currentUser.value = me
+      profileForm.value = { nom: me.nom, email: me.email, photoUrl: me.photoUrl || '' }
+    }
+  } catch {}
+}
+
+
+
+
+function resetProfileForm() {
+  profileForm.value = {
+    nom: currentUser.value.nom,
+    email: currentUser.value.email,
+    photoUrl: currentUser.value.photoUrl || ''
+  }
+}
+
+async function saveProfile() {
+  isLoading.value = true
+  try {
+    await api.patch(`/users/${currentUser.value.id}`, {
+      nom: profileForm.value.nom,
+      email: profileForm.value.email
+    })
+    currentUser.value = { ...currentUser.value, ...profileForm.value }
+    localStorage.setItem('userName', profileForm.value.email)
+    showToast('Profil mis à jour avec succès !')
+  } catch {
+    showToast('Erreur lors de la sauvegarde', 'error')
+  } finally {
+    isLoading.value = false
+  }
+}
+
 onMounted(() => {
   loadUsers()
+  loadCurrentUser()
   const tick = () => {
-    const now = new Date()
-    currentTime.value = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+    currentTime.value = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
   }
   tick()
   setInterval(tick, 60000)
@@ -1118,4 +1168,172 @@ onMounted(() => {
   .charts-row { grid-template-columns: 1fr; }
   .sidebar { position: fixed; z-index: 50; height: 100vh; }
 }
+/* PROFILE */
+.profile-page { width: 100%;
+ max-width: 100%; }
+
+.profile-cover {
+  height: 180px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(0,245,212,0.15), rgba(99,102,241,0.2), rgba(168,85,247,0.15));
+  border: 1px solid rgba(255,255,255,0.08);
+  position: relative;
+  margin-bottom: 70px;
+  width: 100%;
+}
+
+.profile-avatar-wrap {
+  position: absolute;
+  bottom: -44px;
+  left: 2rem;
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+}
+
+.profile-avatar-ring {
+  width: 88px; height: 88px;
+  border-radius: 50%;
+  border: 3px solid #00f5d4;
+  background: #0d1b2e;
+  overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.profile-avatar-img { width: 100%; height: 100%; object-fit: cover; }
+
+.profile-avatar-placeholder {
+  font-family: 'Syne', sans-serif;
+  font-size: 2rem; font-weight: 700; color: #00f5d4;
+}
+
+.change-photo-btn {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 14px;
+  background: rgba(0,245,212,0.1);
+  border: 1px solid rgba(0,245,212,0.25);
+  border-radius: 8px;
+  color: #00f5d4; font-size: 0.78rem;
+  cursor: pointer; transition: all 0.2s;
+  margin-bottom: 6px;
+}
+.change-photo-btn:hover { background: rgba(0,245,212,0.18); }
+
+.profile-content {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 1.5rem;
+  width: 100%;
+}
+
+.profile-card {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 16px;
+  padding: 1.5rem;
+  text-align: center;
+}
+
+.profile-avatar-display { margin-bottom: 1rem; }
+.profile-avatar-img-lg { width: 72px; height: 72px; border-radius: 50%; object-fit: cover; }
+.profile-avatar-placeholder-lg {
+  width: 72px; height: 72px; border-radius: 50%;
+  background: linear-gradient(135deg, #00f5d4, #6366f1);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.8rem; font-weight: 700; color: #050b18;
+  margin: 0 auto;
+}
+
+.profile-name-display {
+  font-family: 'Syne', sans-serif;
+  font-size: 1.1rem; font-weight: 700; margin-bottom: 4px;
+}
+.profile-email-display { font-size: 0.82rem; color: rgba(255,255,255,0.4); margin-bottom: 0.8rem; }
+
+.profile-stats-row {
+  display: flex; align-items: center; justify-content: center;
+  gap: 1.5rem; margin-top: 1.2rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255,255,255,0.07);
+}
+.p-stat { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.p-stat-val { font-family: 'Syne', sans-serif; font-size: 1rem; font-weight: 700; }
+.p-stat-label { font-size: 0.72rem; color: rgba(255,255,255,0.35); }
+.p-stat-divider { width: 1px; height: 30px; background: rgba(255,255,255,0.1); }
+
+.profile-edit-card {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 16px;
+  padding: 1.8rem;
+  width: 100%;
+}
+.edit-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 1rem; font-weight: 600; margin-bottom: 1.3rem;
+}
+
+.input-wrap-profile {
+  display: flex; align-items: center; gap: 8px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px; padding: 0.65rem 0.9rem;
+  transition: border-color 0.2s;
+}
+.input-wrap-profile:focus-within { border-color: rgba(0,245,212,0.4); }
+.input-wrap-profile svg { color: rgba(255,255,255,0.3); flex-shrink: 0; }
+.profile-input {
+  background: none; border: none; outline: none;
+  color: #fff; font-family: 'DM Sans', sans-serif;
+  font-size: 0.88rem; flex: 1;
+}
+.profile-input::placeholder { color: rgba(255,255,255,0.2); }
+
+.photo-preview {
+  display: flex; align-items: center; gap: 12px;
+  padding: 0.8rem; margin-bottom: 1rem;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 10px;
+}
+.photo-preview img { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; }
+.photo-preview-info { display: flex; flex-direction: column; gap: 4px; }
+.photo-preview-info span { font-size: 0.78rem; color: rgba(255,255,255,0.4); }
+.remove-photo {
+  background: rgba(239,68,68,0.1);
+  border: 1px solid rgba(239,68,68,0.2);
+  color: #f87171; font-size: 0.75rem;
+  padding: 3px 8px; border-radius: 6px; cursor: pointer;
+  width: fit-content;
+}
+
+.profile-actions {
+  display: flex; gap: 8px;
+  justify-content: flex-end; margin-top: 1.2rem;
+}
+
+
+
+.change-btn {
+  background: rgba(0,245,212,0.2);
+  border: 1px solid rgba(0,245,212,0.4);
+  color: #00f5d4;
+}
+.change-btn:hover { background: rgba(0,245,212,0.3); }
+.remove-btn {
+  background: rgba(239,68,68,0.2);
+  border: 1px solid rgba(239,68,68,0.4);
+  color: #f87171;
+}
+.remove-btn:hover { background: rgba(239,68,68,0.3); }
+@media (max-width: 900px) {
+  .profile-content {
+    grid-template-columns: 1fr;
+  }
+  .profile-cover {
+    height: 140px;
+    margin-bottom: 80px;
+  }
+}
+
 </style>
