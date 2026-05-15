@@ -162,9 +162,10 @@ onUnmounted(() => {
   position: relative;
   width: 100%;
   height: 100%;
-  min-height: 400px;
-  border-radius: 16px;
+  min-height: 0;        /* ← changer 400px en 0 */
+  border-radius: 0;
   overflow: hidden;
+  background: #060918;
 }
 canvas { width: 100% !important; height: 100% !important; display: block; }
 .controls-hint {

@@ -22,27 +22,22 @@ public class CourseController {
     private final CourseService courseService;
     private final SlideService slideService;
 
-    // ✅ GET tous les cours — public
     @GetMapping
     public List<CourseResponse> getAllCourses() {
         return courseService.getAllCourses();
     }
 
-    // ✅ GET un cours par ID — public
     @GetMapping("/{id}")
     public CourseResponse getCourse(@PathVariable Long id) {
         return courseService.getCourseById(id);
     }
 
-    // ✅ GET slides d'un cours — public
     @GetMapping("/{id}/slides")
     public List<SlideResponse> getCourseSlides(@PathVariable Long id) {
         return slideService.getSlidesByCourse(id);
     }
 
-    // ✅ POST créer un cours — TEACHER ou ADMIN
     @PostMapping
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @ResponseStatus(HttpStatus.CREATED)
     public CourseResponse createCourse(
             @Valid @RequestBody CourseRequest request,
@@ -50,10 +45,7 @@ public class CourseController {
     ) {
         return courseService.createCourse(request, userDetails.getId());
     }
-
-    // ✅ PUT modifier un cours — TEACHER ou ADMIN
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     public CourseResponse updateCourse(
             @PathVariable Long id,
             @Valid @RequestBody CourseRequest request,
@@ -62,9 +54,7 @@ public class CourseController {
         return courseService.updateCourse(id, request, userDetails.getId());
     }
 
-    // ✅ DELETE supprimer un cours — TEACHER ou ADMIN
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteCourse(
             @PathVariable Long id,

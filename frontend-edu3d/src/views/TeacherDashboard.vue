@@ -87,7 +87,7 @@
 
           <div class="welcome-banner">
             <div class="welcome-left">
-              <p class="welcome-sub">Bienvenue de retour 👋</p>
+              <p class="welcome-sub">Bienvenue de retour </p>
               <h2 class="welcome-name">{{ currentTeacher.nom || 'Enseignant' }}</h2>
               <p class="welcome-desc">Vous avez <strong>{{ myCourses.length }}</strong> cours actifs et <strong>{{ totalStudents }}</strong> étudiants inscrits.</p>
             </div>
@@ -177,7 +177,9 @@
 
           <div class="courses-grid">
             <div class="course-card" v-for="(course, i) in filteredCourses" :key="course.id"
-              :style="{ animationDelay: i*0.06+'s' }">
+              :style="{ animationDelay: i*0.06+'s' }"
+              @click="openCourseDetail(course)"
+              style="cursor:pointer">
               <div class="course-card-header">
                 <div class="course-card-icon">📚</div>
                 <div class="course-card-actions">
@@ -235,6 +237,9 @@
               <h4 class="cls-name">{{ cls.name }}</h4>
               <div class="cls-course-tag" v-if="getCourseOfClass(cls)">
                 📚 {{ getCourseOfClass(cls)?.title }}
+              </div>
+              <div class="cls-course-tag" style="color:rgba(255,255,255,0.25)" v-else>
+                ⚠️ Aucun cours associé
               </div>
 
               <!-- Invite Code + QR -->
@@ -296,7 +301,7 @@
 
               <div class="profile-right">
                 <div class="profile-edit-card">
-                  <h3 class="edit-title">✏️ Modifier mon profil</h3>
+                  <h3 class="edit-title"> Modifier mon profil</h3>
 
                   <div class="form-group">
                     <label>Nom complet</label>
@@ -317,7 +322,7 @@
                   <div class="profile-actions">
                     <button class="btn-cancel" @click="resetProfile">Annuler</button>
                     <button class="btn-primary" @click="saveProfile" :disabled="isLoading">
-                      <span v-if="!isLoading">💾 Sauvegarder</span>
+                      <span v-if="!isLoading"> Sauvegarder</span>
                       <div v-else class="spin"></div>
                     </button>
                   </div>
@@ -396,12 +401,138 @@
       </div>
     </transition>
 
+<!-- ===== MODAL COURSE DETAIL ===== -->
+<transition name="modal">
+  <div class="modal-overlay" v-if="showCourseDetail" @click.self="showCourseDetail = false">
+    <div class="modal-box modal-xl">
+      <div class="modal-header">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:1.5rem">📚</span>
+          <div>
+            <h3>{{ selectedCourse?.title }}</h3>
+            <p style="font-size:0.75rem;color:rgba(255,255,255,0.35);margin-top:2px">
+              {{ selectedCourseSlides.length }} slide(s) · par {{ currentTeacher.nom }}
+            </p>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="icon-btn edit" @click="openCourseModal('edit', selectedCourse); showCourseDetail = false">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+          <button class="icon-btn slides" @click="openSlides(selectedCourse); showCourseDetail = false">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+          </button>
+          <button class="modal-close" @click="showCourseDetail = false">✕</button>
+        </div>
+      </div>
+
+      <div class="modal-body" style="padding:0;overflow:hidden">
+        <div class="course-detail-layout">
+
+          <!-- Slides sidebar -->
+          <div class="slides-sidebar">
+            <div class="slides-sidebar-header">
+              <span>Slides ({{ selectedCourseSlides.length }})</span>
+              <button class="btn-primary" style="padding:4px 12px;font-size:0.75rem"
+                @click="openSlides(selectedCourse); showCourseDetail = false">
+                + Ajouter
+              </button>
+            </div>
+
+            <div class="slides-sidebar-list">
+              <div
+                v-for="slide in selectedCourseSlides" :key="slide.id"
+                :class="['slide-thumb', { active: activeSlide?.id === slide.id }]"
+                @click="selectSlide(slide)">
+                <div class="slide-thumb-pos">#{{ slide.position }}</div>
+                <div class="slide-thumb-info">
+                  <div class="slide-thumb-title">{{ slide.title }}</div>
+                  <div class="slide-thumb-preview">
+                    {{ slide.contentText?.substring(0,40) || 'Pas de contenu' }}...
+                  </div>
+                </div>
+                <div class="slide-thumb-3d" v-if="slide.object3dUrl">🧊</div>
+              </div>
+
+              <div class="empty-state" v-if="!selectedCourseSlides.length">
+                <p>Aucune slide</p>
+                <button class="btn-primary" style="margin-top:8px"
+                  @click="openSlides(selectedCourse); showCourseDetail = false">
+                  Créer la première slide
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Main content -->
+          <div class="course-detail-main">
+
+            <!-- Si slide sélectionnée -->
+            <div v-if="activeSlide" class="slide-view">
+              <!-- 3D Viewer -->
+              <div class="slide-3d-area" v-if="activeSlide.object3dUrl">
+                <ThreeViewer
+                  :modelUrl="activeSlide.object3dUrl"
+                  :autoRotate="true"
+                />
+              </div>
+
+              <!-- Infos slide -->
+              <div class="slide-info-panel">
+                <div class="slide-info-header">
+                  <h3 class="slide-info-title">{{ activeSlide.title }}</h3>
+                  <span class="slide-info-pos">Slide {{ activeSlide.position + 1 }} / {{ selectedCourseSlides.length }}</span>
+                </div>
+                <p class="slide-info-content">{{ activeSlide.contentText || 'Aucun contenu textuel' }}</p>
+
+                <!-- Navigation entre slides -->
+                <div class="slide-nav">
+                  <button class="slide-nav-btn"
+                    :disabled="activeSlide.position === 0"
+                    @click="navigateSlide(-1)">
+                    ← Précédente
+                  </button>
+                  <div class="slide-dots">
+                    <span v-for="s in selectedCourseSlides" :key="s.id"
+                      :class="['dot', { active: s.id === activeSlide.id }]"
+                      @click="selectSlide(s)">
+                    </span>
+                  </div>
+                  <button class="slide-nav-btn"
+                    :disabled="activeSlide.position === selectedCourseSlides.length - 1"
+                    @click="navigateSlide(1)">
+                    Suivante →
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Si aucune slide sélectionnée -->
+            <div v-else class="course-detail-empty">
+              <div style="font-size:3rem;margin-bottom:1rem">📚</div>
+              <h3>{{ selectedCourse?.title }}</h3>
+              <p style="color:rgba(255,255,255,0.4);margin-top:8px;max-width:400px;text-align:center">
+                {{ selectedCourse?.description || 'Aucune description' }}
+              </p>
+              <p style="color:rgba(255,255,255,0.25);font-size:0.85rem;margin-top:1rem">
+                {{ selectedCourseSlides.length > 0 ? '← Sélectionnez une slide pour commencer' : 'Aucune slide pour ce cours' }}
+              </p>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</transition>
+
+
     <!-- ===== MODAL CLASSROOM ===== -->
     <transition name="modal">
       <div class="modal-overlay" v-if="classModal.show" @click.self="classModal.show = false">
         <div class="modal-box">
           <div class="modal-header">
-            <h3>{{ classModal.mode === 'create' ? '🏛️ Nouvelle classe' : '✏️ Modifier la classe' }}</h3>
+            <h3>{{ classModal.mode === 'create' ? '🏛️ Nouvelle classe' : ' Modifier la classe' }}</h3>
             <button class="modal-close" @click="classModal.show = false">✕</button>
           </div>
           <div class="modal-body">
@@ -446,7 +577,7 @@
                 <div class="qr-container" v-if="qrDataUrl">
                   <img :src="qrDataUrl" alt="QR Code" class="qr-img"/>
                   <p class="qr-hint">Les étudiants scannent ce QR pour rejoindre</p>
-                  <a :href="qrDataUrl" download="qrcode.png" class="qr-download">⬇️ Télécharger QR</a>
+                  <a :href="qrDataUrl" download="qrcode.png" class="qr-download"> Télécharger QR</a>
                 </div>
               </div>
 
@@ -485,7 +616,7 @@
               <p class="qr-hint">Scannez pour rejoindre la classe</p>
               <div style="display:flex;gap:8px;justify-content:center;margin-top:0.8rem">
                 <button class="copy-btn-lg" @click="copyCode(qrModal.cls?.inviteCode)">📋 Copier le code</button>
-                <a v-if="qrDataUrl" :href="qrDataUrl" download="qrcode.png" class="qr-download">⬇️ Télécharger</a>
+                <a v-if="qrDataUrl" :href="qrDataUrl" download="qrcode.png" class="qr-download"> Télécharger</a>
               </div>
             </div>
           </div>
@@ -531,6 +662,8 @@
 import { ref, computed, onMounted } from 'vue'
 import api from '../services/api.js'
 import CourseCreator from './CourseCreator.vue'
+import ThreeViewer from './ThreeViewer.vue'
+
 
 // ─── State ───────────────────────────────────────────────
 const sidebarCollapsed = ref(false)
@@ -558,6 +691,11 @@ const qrModal     = ref({ show: false, cls: null })
 const deleteModal = ref({ show: false, name: '', action: () => {} })
 const profileForm = ref({ nom: '', email: '' })
 
+const selectedCourse = ref(null)
+const selectedCourseSlides = ref([])
+const showCourseDetail = ref(false)
+
+
 const newSlide = ref({ title: '', contentText: '', object3dUrl: '', position: 0 })
 
 // ─── Nav ─────────────────────────────────────────────────
@@ -566,13 +704,15 @@ const iBook    = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" str
 const iClass   = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>`
 const iProfile = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`
 
+
+
 const mainNav = computed(() => [
   { id: 'overview',   label: 'Vue globale', icon: iGrid },
   { id: 'profile',    label: 'Mon Profil',  icon: iProfile },
 ])
 const contentNav = computed(() => [
-  { id: 'courses',   label: 'Mes Cours',    icon: iBook,   badge: myCourses.value.length || null },
-  { id: 'classroom', label: 'Classrooms',   icon: iClass,  badge: myClassrooms.value.length || null },
+  { id: 'courses',      label: 'Mes Cours',    icon: iBook,   badge: myCourses.value.length || null },
+  { id: 'classroom',   label: 'Classrooms',   icon: iClass,  badge: myClassrooms.value.length || null },
 ])
 
 // ─── Computed ─────────────────────────────────────────────
@@ -619,22 +759,29 @@ function showToast(msg, type = 'success') {
 // ─── Load data ────────────────────────────────────────────
 async function loadTeacher() {
   try {
-    const email = localStorage.getItem('userName')
-    const res = await api.get('/users')
-    const me = res.data.find(u => u.email === email)
-    if (me) {
-      currentTeacher.value = me
-      profileForm.value = { nom: me.nom, email: me.email }
+    const res = await api.get('/users/me')
+    currentTeacher.value = res.data
+    profileForm.value = {
+      nom: res.data.nom,
+      email: res.data.email
     }
-  } catch {}
+  } catch {
+    // Fallback si endpoint pas encore disponible
+    const email = localStorage.getItem('userName')
+    currentTeacher.value = {
+      nom: email?.split('@')[0] || 'Teacher',
+      email: email || '',
+      role: 'TEACHER'
+    }
+  }
 }
 
 async function loadCourses() {
   try {
     const res = await api.get('/courses')
     myCourses.value = res.data
-  } catch {
-    showToast('Erreur chargement cours', 'error')
+  } catch (err) {
+    console.log('loadCourses error:', err.response?.status)
   }
 }
 async function loadClassrooms() {
@@ -679,20 +826,54 @@ function openCourseModal(mode, course = null) {
     initialData: course || {}
   }
 }
+
+const activeSlide = ref(null)
+
+function selectSlide(slide) {
+  activeSlide.value = null  // ← reset d'abord
+  setTimeout(() => {
+    activeSlide.value = slide  // ← puis charge après 50ms
+  }, 50)
+}
+
+function navigateSlide(direction) {
+  const currentIndex = selectedCourseSlides.value.findIndex(s => s.id === activeSlide.value.id)
+  const newIndex = currentIndex + direction
+  if (newIndex >= 0 && newIndex < selectedCourseSlides.value.length) {
+    activeSlide.value = selectedCourseSlides.value[newIndex]
+  }
+}
+
+
 async function handleCourseSubmit(formData) {
   isLoading.value = true
   try {
-    if (courseModal.value.mode === 'create') {
-      await api.post('/courses', formData)
-      showToast('Cours créé !')
-    } else {
-      await api.put(`/courses/${courseModal.value.editId}`, formData)
-      showToast('Cours modifié !')
+    // Étape 1 — Créer le cours
+    const courseRes = await api.post('/courses', {
+      title: formData.title,
+      description: formData.description
+    })
+    const courseId = courseRes.data.id
+
+    // Étape 2 — Créer la première slide avec le modèle 3D
+    if (formData.object3dUrl && courseId) {
+      await api.post('/slides', {
+        title: 'Slide 1 — ' + formData.title,
+        contentText: formData.description || '',
+        object3dUrl: formData.object3dUrl,
+        position: 0,
+        courseId: courseId
+      })
     }
+
+    showToast('Cours créé avec succès ! 🎉')
     courseModal.value.show = false
     await loadCourses()
-  } catch {
-    showToast('Erreur', 'error')
+
+  } catch (err) {
+    console.log('Status:', err.response?.status)
+    console.log('Data:', JSON.stringify(err.response?.data))
+    showToast('Erreur lors de la création', 'error')
   } finally {
     isLoading.value = false
   }
@@ -730,8 +911,22 @@ function confirmDeleteCourse(course) {
   }
 }
 
-function openCourseDetail(course) {
-  openSlides(course)
+async function openCourseDetail(course) {
+  selectedCourse.value = course
+  activeSlide.value = null
+  showCourseDetail.value = true
+  try {
+    const res = await api.get(`/courses/${course.id}/slides`)
+    selectedCourseSlides.value = res.data
+    if (res.data.length > 0) {
+      // Délai pour que le modal soit rendu avant d'initialiser Three.js
+      setTimeout(() => {
+        activeSlide.value = res.data[0]
+      }, 150)
+    }
+  } catch {
+    selectedCourseSlides.value = []
+  }
 }
 
 // ─── Slides actions ───────────────────────────────────────
@@ -991,7 +1186,19 @@ onMounted(async () => {
 .cls-avatar { font-size: 1.8rem; }
 .cls-actions { display: flex; gap: 4px; }
 .cls-name { font-family: 'Syne', sans-serif; font-size: 1rem; font-weight: 700; margin-bottom: 6px; }
-.cls-course-tag { font-size: 0.75rem; color: rgba(255,255,255,0.4); margin-bottom: 0.8rem; }
+.cls-course-tag {
+  font-size: 0.75rem;
+  color: rgba(255,255,255,0.5);
+  margin-bottom: 0.8rem;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(167,139,250,0.06);
+  border: 1px solid rgba(167,139,250,0.1);
+  border-radius: 6px;
+  padding: 4px 8px;
+  width: fit-content;
+}
 .invite-section { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 0.7rem; margin-bottom: 0.8rem; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .invite-code-box { display: flex; align-items: center; gap: 8px; flex: 1; }
 .invite-label { font-size: 0.65rem; color: rgba(255,255,255,0.3); white-space: nowrap; }
@@ -1072,10 +1279,21 @@ select.modal-input option { background: #0e1228; }
 
 /* ── PROFILE ── */
 .profile-page { width: 100%; }
-.profile-cover { height: 160px; border-radius: 16px; background: linear-gradient(135deg, rgba(167,139,250,0.18), rgba(124,58,237,0.12), rgba(99,102,241,0.08)); border: 1px solid rgba(167,139,250,0.12); position: relative; margin-bottom: 60px; overflow: hidden; }
+.profile-cover { height: 160px; border-radius: 16px; background: linear-gradient(135deg, rgba(167,139,250,0.18), rgba(124,58,237,0.12), rgba(99,102,241,0.08)); border: 1px solid rgba(167,139,250,0.12); position: relative; margin-bottom: 80px;      overflow: visible; }
 .profile-cover-bg { position: absolute; inset: 0; background: radial-gradient(ellipse at 30% 50%, rgba(167,139,250,0.15) 0%, transparent 70%); }
-.profile-avatar-wrap { position: absolute; bottom: -40px; left: 2rem; }
-.profile-ring { width: 80px; height: 80px; border-radius: 50%; border: 3px solid #a78bfa; background: #0e1228; display: flex; align-items: center; justify-content: center; }
+.profile-avatar-wrap { position: absolute; bottom: -40px; bottom: -50px;  left: 2rem; }
+.profile-ring {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  border: 3px solid #a78bfa;
+  background: #0e1228;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;        /* ← changer hidden en visible */
+  flex-shrink: 0;
+}
 .profile-avatar-lg { font-family: 'Syne', sans-serif; font-size: 2rem; font-weight: 800; color: #a78bfa; }
 .profile-content { display: grid; grid-template-columns: 240px 1fr; gap: 1.5rem; width: 100%; }
 .profile-info-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 14px; padding: 1.4rem; text-align: center; }
@@ -1113,6 +1331,111 @@ select.modal-input option { background: #0e1228; }
 .modal-enter-from,.modal-leave-to { opacity:0; }
 .toast-enter-active,.toast-leave-active { transition: all 0.3s ease; }
 .toast-enter-from,.toast-leave-to { opacity:0; transform:translateY(10px); }
+
+/* COURSE DETAIL MODAL */
+.modal-xl {
+  max-width: 1100px;
+  max-height: 90vh;
+  width: 95vw;
+}
+
+.course-detail-layout {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  height: 75vh;
+  min-height: 550px;
+  overflow: hidden;
+}
+
+/* SLIDES SIDEBAR */
+.slides-sidebar {
+  border-right: 1px solid rgba(255,255,255,0.06);
+  display: flex; flex-direction: column;
+  background: rgba(255,255,255,0.02);
+}
+.slides-sidebar-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 0.9rem 1rem;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  font-size: 0.82rem; font-weight: 600; color: rgba(255,255,255,0.6);
+}
+.slides-sidebar-list { flex: 1; overflow-y: auto; padding: 0.5rem; display: flex; flex-direction: column; gap: 4px; }
+
+.slide-thumb {
+  display: flex; align-items: center; gap: 8px;
+  padding: 0.6rem 0.7rem;
+  border-radius: 8px; cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.2s;
+}
+.slide-thumb:hover { background: rgba(167,139,250,0.06); border-color: rgba(167,139,250,0.1); }
+.slide-thumb.active { background: rgba(167,139,250,0.1); border-color: rgba(167,139,250,0.3); }
+.slide-thumb-pos { font-size: 0.68rem; color: rgba(255,255,255,0.25); min-width: 16px; font-family: 'Syne', sans-serif; font-weight: 700; }
+.slide-thumb-info { flex: 1; min-width: 0; }
+.slide-thumb-title { font-size: 0.8rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.slide-thumb-preview { font-size: 0.7rem; color: rgba(255,255,255,0.3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+.slide-thumb-3d { font-size: 0.8rem; flex-shrink: 0; }
+
+/* COURSE DETAIL MAIN */
+.course-detail-main {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #060918;
+}
+.course-detail-empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; }
+
+
+.slide-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.slide-3d-area {
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  width: 100%;
+  position: relative;
+  background: #060918;
+}
+.slide-3d-area :deep(.three-container) {
+  height: 100% !important;
+  min-height: 100% !important;
+  border-radius: 0 !important;
+}
+
+.slide-3d-area :deep(canvas) {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+
+.slide-info-panel {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  background: rgba(6,9,26,0.8);
+  flex-shrink: 0;
+}
+.slide-info-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
+.slide-info-title { font-family: 'Syne', sans-serif; font-size: 1rem; font-weight: 700; }
+.slide-info-pos { font-size: 0.75rem; color: rgba(255,255,255,0.3); }
+.slide-info-content { font-size: 0.85rem; color: rgba(255,255,255,0.5); line-height: 1.6; margin-bottom: 1rem; }
+
+/* SLIDE NAVIGATION */
+.slide-nav { display: flex; align-items: center; justify-content: space-between; }
+.slide-nav-btn {
+  padding: 6px 14px; background: rgba(167,139,250,0.1);
+  border: 1px solid rgba(167,139,250,0.2); border-radius: 8px;
+  color: #a78bfa; font-size: 0.8rem; cursor: pointer; transition: all 0.2s;
+}
+.slide-nav-btn:hover:not(:disabled) { background: rgba(167,139,250,0.2); }
+.slide-nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.slide-dots { display: flex; gap: 6px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.15); cursor: pointer; transition: all 0.2s; }
+.dot.active { background: #a78bfa; transform: scale(1.2); }
 
 /* ── RESPONSIVE ── */
 @media (max-width: 1100px) { .stats-grid { grid-template-columns: repeat(2,1fr); } .profile-content { grid-template-columns: 1fr; } }

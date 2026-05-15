@@ -19,9 +19,15 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     // ← déjà présent — ne pas toucher
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-        return userRepository.findByEmail(email)
-                .map(CustomUserDetails::new)
+        User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("Utilisateur introuvable : " + email));
+
+        System.out.println("=== USER LOADED ===");
+        System.out.println("Email: " + user.getEmail());
+        System.out.println("Role: " + user.getRole());
+        System.out.println("Authorities: ROLE_" + user.getRole().name());
+
+        return new CustomUserDetails(user);
     }
 
     // ← ajoute ces méthodes en dessous

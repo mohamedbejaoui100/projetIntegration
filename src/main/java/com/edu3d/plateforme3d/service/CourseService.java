@@ -21,7 +21,10 @@ public class CourseService {
 
     public CourseResponse createCourse(CourseRequest request, Long teacherId) {
         User teacher = userRepository.findById(teacherId)
-                .orElseThrow(() -> new ResourceNotFoundException("Enseignant introuvable"));
+                .orElseThrow(() -> new ResourceNotFoundException("Utilisateur introuvable"));
+
+        // ← Supprimer l'ancienne vérification de rôle
+        // Spring Security s'en occupe déjà via SecurityConfig
 
         Course course = Course.builder()
                 .title(request.title())
@@ -46,8 +49,12 @@ public class CourseService {
 
     private CourseResponse mapToResponse(Course c) {
         return new CourseResponse(
-                c.getId(), c.getTitle(), c.getDescription(),
-                c.getTeacher().getNom(), c.getSlides().size(), c.getCreatedAt()
+                c.getId(),
+                c.getTitle(),
+                c.getDescription(),
+                c.getTeacher().getNom(),
+                c.getSlides() != null ? c.getSlides().size() : 0,  // ← null safe
+                c.getCreatedAt()
         );
     }
     public CourseResponse updateCourse(Long id, CourseRequest request, Long userId) {

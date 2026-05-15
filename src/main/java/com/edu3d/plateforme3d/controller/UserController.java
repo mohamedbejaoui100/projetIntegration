@@ -10,6 +10,9 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
+import com.edu3d.plateforme3d.exception.ResourceNotFoundException;
+import com.edu3d.plateforme3d.security.CustomUserDetails;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 
 @RestController
 @RequestMapping("/api/users")
@@ -65,5 +68,9 @@ public class UserController {
         userService.deleteUser(id);
     }
 
-
+    @GetMapping("/me")
+    public User getCurrentUser(@AuthenticationPrincipal CustomUserDetails userDetails) {
+        return userRepository.findById(userDetails.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("User introuvable"));
+    }
 }

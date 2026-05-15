@@ -21,6 +21,8 @@ public class Course {
     @Column(nullable = false)
     private String title;
 
+
+    @Column(columnDefinition = "TEXT")
     private String description;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -29,7 +31,7 @@ public class Course {
 
     @OneToMany(mappedBy = "course", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("position ASC")
-    private List<Slide> slides = new ArrayList<>();
+    private List<Slide> slides = new ArrayList<>();  // ← = new ArrayList<>() obligatoire
 
     @OneToMany(mappedBy = "course", cascade = CascadeType.ALL)
     private List<ClassRoom> classRooms = new ArrayList<>();
