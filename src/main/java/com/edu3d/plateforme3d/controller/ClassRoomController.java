@@ -55,6 +55,15 @@ public class ClassRoomController {
                 .orElseThrow(() -> new ResourceNotFoundException("Classroom introuvable"));
     }
 
+    // GET classrooms où l'étudiant est inscrit
+    @GetMapping("/my-enrollments")
+    @PreAuthorize("hasRole('STUDENT')")
+    public List<ClassRoom> getMyEnrollments(
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        return classRoomRepository.findByEnrolledStudentId(userDetails.getId());
+    }
+
     // GET étudiants d'une classe
     @GetMapping("/{id}/students")
     @PreAuthorize("hasAnyRole('TEACHER','ADMIN')")

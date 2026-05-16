@@ -32,6 +32,15 @@ public class CourseController {
         return courseService.getCourseById(id);
     }
 
+    // GET cours auxquels l'étudiant est inscrit
+    @GetMapping("/my-enrolled")
+    public List<CourseResponse> getMyEnrolledCourses(
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        return courseService.getEnrolledCourses(userDetails.getId());
+    }
+
+
     @GetMapping("/{id}/slides")
     public List<SlideResponse> getCourseSlides(@PathVariable Long id) {
         return slideService.getSlidesByCourse(id);

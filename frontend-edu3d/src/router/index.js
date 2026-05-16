@@ -13,6 +13,11 @@ const routes = [
     path: '/teacher',
     component: () => import('../views/TeacherDashboard.vue'),
     meta: { requiresAuth: true, role: 'TEACHER' }
+  },
+  {
+    path: '/student',
+    component: () => import('../views/StudentDashboard.vue'),
+    meta: { requiresAuth: true, role: 'STUDENT' }
   }
 ]
 

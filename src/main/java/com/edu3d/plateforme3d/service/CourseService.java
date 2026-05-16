@@ -57,6 +57,12 @@ public class CourseService {
                 c.getCreatedAt()
         );
     }
+    @Transactional(readOnly = true)
+    public List<CourseResponse> getEnrolledCourses(Long studentId) {
+        return courseRepository.findEnrolledCoursesByStudentId(studentId)
+                .stream().map(this::mapToResponse).toList();
+    }
+
     public CourseResponse updateCourse(Long id, CourseRequest request, Long userId) {
         Course course = courseRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Cours introuvable : " + id));

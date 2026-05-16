@@ -78,6 +78,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT,    "/api/slides/**").hasAnyRole("TEACHER", "ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/slides/**").hasAnyRole("TEACHER", "ADMIN")
 
+
                         // 7. Classrooms écriture
                         .requestMatchers(HttpMethod.POST,   "/api/classrooms").hasAnyRole("TEACHER", "ADMIN")
                         .requestMatchers(HttpMethod.POST,   "/api/classrooms/join").hasAnyRole("STUDENT", "TEACHER", "ADMIN")
@@ -86,6 +87,8 @@ public class SecurityConfig {
 
                         // 8. Enrollment
                         .requestMatchers(HttpMethod.POST, "/api/enroll").hasAnyRole("STUDENT", "ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/courses/my-enrolled").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/classrooms/my-enrollments").authenticated()
 
                         // 9. Tout le reste — juste connecté
                         .anyRequest().authenticated()

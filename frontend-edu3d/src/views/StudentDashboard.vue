@@ -1,0 +1,1011 @@
+cat > /mnt/user-data/outputs/StudentDashboard.vue << 'ENDOFFILE'
+<template>
+  <div class="student-root">
+
+    <!-- SIDEBAR -->
+    <aside :class="['sidebar', { collapsed: sidebarCollapsed }]">
+      <div class="sidebar-header">
+        <div class="brand">
+          <div class="brand-icon">
+            <svg width="20" height="20" viewBox="0 0 38 38" fill="none">
+              <polygon points="19,2 36,32 2,32" fill="none" stroke="#34d399" stroke-width="2.2"/>
+              <circle cx="19" cy="19" r="4" fill="#34d399"/>
+            </svg>
+          </div>
+          <span class="brand-text" v-if="!sidebarCollapsed">EDU<em>3D</em></span>
+        </div>
+        <button class="collapse-btn" @click="sidebarCollapsed = !sidebarCollapsed">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15">
+            <path v-if="!sidebarCollapsed" d="M15 18l-6-6 6-6"/>
+            <path v-else d="M9 18l6-6-6-6"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="student-badge" v-if="!sidebarCollapsed">
+        <span class="badge-dot"></span>
+        Espace Étudiant
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section-label" v-if="!sidebarCollapsed">PRINCIPAL</div>
+        <button v-for="item in navItems" :key="item.id"
+          :class="['nav-item', { active: activeView === item.id }]"
+          @click="activeView = item.id" :title="item.label">
+          <span class="nav-icon" v-html="item.icon"></span>
+          <span class="nav-label" v-if="!sidebarCollapsed">{{ item.label }}</span>
+          <span class="nav-badge" v-if="item.badge && !sidebarCollapsed">{{ item.badge }}</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer" v-if="!sidebarCollapsed">
+        <div class="student-info" @click="activeView = 'profile'" style="cursor:pointer">
+          <div class="student-avatar-sm">{{ studentInitial }}</div>
+          <div class="student-details">
+            <div class="student-name-sm">{{ currentStudent.nom || 'Étudiant' }}</div>
+            <div class="student-role-sm">Student</div>
+          </div>
+        </div>
+        <button class="logout-btn" @click="logout">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="17" height="17">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+            <polyline points="16,17 21,12 16,7"/>
+            <line x1="21" y1="12" x2="9" y2="12"/>
+          </svg>
+        </button>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main">
+      <header class="topbar">
+        <div class="topbar-left">
+          <h1 class="page-title">{{ currentPageTitle }}</h1>
+          <div class="breadcrumb">Student / {{ currentPageTitle }}</div>
+        </div>
+        <div class="topbar-right">
+          <div class="topbar-time">{{ currentTime }}</div>
+        </div>
+      </header>
+
+      <transition name="fade" mode="out-in">
+
+        <!-- ====== OVERVIEW ====== -->
+        <div v-if="activeView === 'overview'" key="overview" class="view">
+          <div class="welcome-banner">
+            <div class="welcome-left">
+              <p class="welcome-sub">Bienvenue 👋</p>
+              <h2 class="welcome-name">{{ currentStudent.nom || 'Étudiant' }}</h2>
+              <p class="welcome-desc">
+                Vous êtes inscrit à <strong>{{ myClassrooms.length }}</strong> classe(s)
+                et <strong>{{ myCourses.length }}</strong> cours.
+              </p>
+              <button class="btn-join-banner" @click="activeView = 'classrooms'">
+                🏛️ Rejoindre une classe
+              </button>
+            </div>
+            <div class="welcome-right">
+              <svg viewBox="0 0 120 120" width="110" height="110">
+                <polygon points="60,10 110,85 10,85" fill="none" stroke="rgba(52,211,153,0.4)" stroke-width="2"/>
+                <polygon points="60,25 95,80 25,80" fill="rgba(52,211,153,0.08)" stroke="rgba(52,211,153,0.25)" stroke-width="1.5"/>
+                <circle cx="60" cy="60" r="8" fill="rgba(52,211,153,0.3)" stroke="#34d399" stroke-width="1.5"/>
+                <circle cx="60" cy="60" r="3" fill="#34d399"/>
+                <line x1="60" y1="10" x2="60" y2="60" stroke="rgba(52,211,153,0.3)" stroke-width="1"/>
+                <line x1="110" y1="85" x2="60" y2="60" stroke="rgba(52,211,153,0.3)" stroke-width="1"/>
+                <line x1="10" y1="85" x2="60" y2="60" stroke="rgba(52,211,153,0.3)" stroke-width="1"/>
+              </svg>
+            </div>
+          </div>
+
+          <div class="stats-grid">
+            <div class="stat-card" v-for="(s,i) in statsCards" :key="s.label" :style="{ animationDelay: i*0.08+'s' }">
+              <div class="stat-top">
+                <div class="stat-icon-wrap" :style="{ background: s.bg }"><span v-html="s.icon"></span></div>
+              </div>
+              <div class="stat-num">{{ s.val }}</div>
+              <div class="stat-lbl">{{ s.label }}</div>
+              <div class="stat-bar"><div class="stat-bar-inner" :style="{ width: s.pct+'%', background: s.color }"></div></div>
+            </div>
+          </div>
+
+          <div class="overview-row">
+            <div class="ov-card">
+              <div class="ov-card-header">
+                <h3>Mes classes récentes</h3>
+                <button class="btn-link" @click="activeView = 'classrooms'">Voir toutes →</button>
+              </div>
+              <div class="class-mini-list">
+                <div class="class-mini" v-for="cls in myClassrooms.slice(0,4)" :key="cls.id" @click="openClassroomDetail(cls)">
+                  <div class="class-mini-icon">🏛️</div>
+                  <div class="class-mini-info">
+                    <div class="class-mini-name">{{ cls.name }}</div>
+                    <div class="class-mini-teacher">{{ getTeacherOfClass(cls) }}</div>
+                  </div>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="9,18 15,12 9,6"/></svg>
+                </div>
+                <div class="empty-state" v-if="!myClassrooms.length">
+                  <p>Aucune classe — rejoignez-en une !</p>
+                  <button class="btn-primary" style="margin-top:8px" @click="activeView = 'classrooms'">Rejoindre</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="ov-card">
+              <div class="ov-card-header">
+                <h3>Mes cours récents</h3>
+                <button class="btn-link" @click="activeView = 'courses'">Voir tous →</button>
+              </div>
+              <div class="course-mini-list">
+                <div class="course-mini" v-for="c in myCourses.slice(0,4)" :key="c.id" @click="openCourseView(c)">
+                  <div class="course-mini-icon">📚</div>
+                  <div class="course-mini-info">
+                    <div class="course-mini-title">{{ c.title }}</div>
+                    <div class="course-mini-teacher">{{ c.teacherName }}</div>
+                  </div>
+                  <span class="course-mini-slides">{{ c.slideCount || 0 }} slides</span>
+                </div>
+                <div class="empty-state" v-if="!myCourses.length">Aucun cours disponible</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ====== CLASSROOMS ====== -->
+        <div v-else-if="activeView === 'classrooms'" key="classrooms" class="view">
+
+          <!-- Join by code -->
+          <div class="join-section">
+            <div class="join-card">
+              <div class="join-icon">🔑</div>
+              <div class="join-content">
+                <h3>Rejoindre une classe</h3>
+                <p>Entrez le code d'invitation donné par votre enseignant</p>
+              </div>
+              <div class="join-input-wrap">
+                <input
+                  v-model="inviteCode"
+                  placeholder="Ex: A3F7B2C1"
+                  class="join-input"
+                  @keyup.enter="joinByCode"
+                  maxlength="8"
+                  style="text-transform:uppercase"
+                />
+                <button class="btn-join" @click="joinByCode" :disabled="!inviteCode || isLoading">
+                  <span v-if="!isLoading">Rejoindre →</span>
+                  <div v-else class="spin"></div>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- My classrooms -->
+          <div class="section-title-row">
+            <h3 class="section-title">Mes classes ({{ myClassrooms.length }})</h3>
+          </div>
+
+          <div class="classrooms-grid">
+            <div class="classroom-card" v-for="(cls, i) in myClassrooms" :key="cls.id"
+              :style="{ animationDelay: i*0.07+'s' }"
+              @click="openClassroomDetail(cls)">
+              <div class="cls-top">
+                <div class="cls-avatar">🏛️</div>
+                <span class="cls-badge">Inscrit ✓</span>
+              </div>
+              <h4 class="cls-name">{{ cls.name }}</h4>
+              <div class="cls-teacher-row" v-if="getTeacherOfClass(cls)">
+                <div class="teacher-mini-avatar">{{ getTeacherOfClass(cls)?.charAt(0) }}</div>
+                <span class="cls-teacher-name">{{ getTeacherOfClass(cls) }}</span>
+              </div>
+              <div class="cls-course-tag" v-if="getCourseOfClass(cls)">
+                📚 {{ getCourseOfClass(cls)?.title }}
+              </div>
+              <div class="cls-footer">
+                <span class="cls-code">Code: <strong>{{ cls.inviteCode }}</strong></span>
+                <span class="cls-view">Voir →</span>
+              </div>
+            </div>
+            <div class="empty-state full" v-if="!myClassrooms.length">
+              Aucune classe — utilisez le code ci-dessus pour en rejoindre une !
+            </div>
+          </div>
+        </div>
+
+        <!-- ====== COURSES ====== -->
+        <div v-else-if="activeView === 'courses'" key="courses" class="view">
+          <div class="courses-grid">
+            <div class="course-card" v-for="(course, i) in myCourses" :key="course.id"
+              :style="{ animationDelay: i*0.06+'s' }"
+              @click="openCourseView(course)">
+              <div class="course-card-header">
+                <div class="course-card-icon">📚</div>
+                <span class="course-card-teacher">{{ course.teacherName }}</span>
+              </div>
+              <h4 class="course-card-title">{{ course.title }}</h4>
+              <p class="course-card-desc">{{ course.description || 'Aucune description' }}</p>
+              <div class="course-card-footer">
+                <span class="slide-count">🗂 {{ course.slideCount || 0 }} slides</span>
+                <button class="btn-view-course">Voir le cours →</button>
+              </div>
+            </div>
+            <div class="empty-state full" v-if="!myCourses.length">
+              Aucun cours — rejoignez une classe pour accéder aux cours !
+            </div>
+          </div>
+        </div>
+
+        <!-- ====== MESSAGES ====== -->
+        <div v-else-if="activeView === 'messages'" key="messages" class="view">
+          <div class="messages-container">
+            <div class="messages-header">
+              <h3>💬 Contacter un enseignant</h3>
+              <p>Envoyez un email directement à votre enseignant</p>
+            </div>
+
+            <div class="message-form-card">
+              <div class="form-group">
+                <label>Destinataire</label>
+                <select v-model="messageForm.teacherEmail" class="msg-input">
+                  <option value="">-- Sélectionner un enseignant --</option>
+                  <option v-for="t in myTeachers" :key="t.email" :value="t.email">
+                    {{ t.nom }} — {{ t.email }}
+                  </option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>Sujet</label>
+                <input v-model="messageForm.subject" class="msg-input" placeholder="Ex: Question sur le cours de robotique"/>
+              </div>
+
+              <div class="form-group">
+                <label>Message</label>
+                <textarea v-model="messageForm.body" class="msg-textarea" rows="6"
+                  placeholder="Écrivez votre message ici..."></textarea>
+              </div>
+
+              <div class="message-actions">
+                <button class="btn-send" @click="sendEmail" :disabled="!messageForm.teacherEmail || !messageForm.subject || !messageForm.body">
+                  📧 Envoyer par email
+                </button>
+              </div>
+
+              <div class="message-info">
+                <p>ℹ️ Ceci ouvrira votre client email (Outlook, Gmail...) avec le message pré-rempli.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ====== PROFILE ====== -->
+        <div v-else-if="activeView === 'profile'" key="profile" class="view">
+          <div class="profile-page">
+            <div class="profile-cover">
+              <div class="profile-cover-bg"></div>
+              <div class="profile-avatar-wrap">
+                <div class="profile-ring">
+                  <div class="profile-avatar-lg">{{ studentInitial }}</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="profile-content">
+              <div class="profile-left">
+                <div class="profile-info-card">
+                  <div class="pi-avatar">{{ studentInitial }}</div>
+                  <h3 class="pi-name">{{ currentStudent.nom }}</h3>
+                  <p class="pi-email">{{ currentStudent.email }}</p>
+                  <span class="role-badge-student">STUDENT</span>
+                  <div class="pi-stats">
+                    <div class="pi-stat"><span class="pi-val">{{ myClassrooms.length }}</span><span class="pi-lbl">Classes</span></div>
+                    <div class="pi-div"></div>
+                    <div class="pi-stat"><span class="pi-val">{{ myCourses.length }}</span><span class="pi-lbl">Cours</span></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="profile-right">
+                <div class="profile-edit-card">
+                  <h3 class="edit-title">✏️ Modifier mon profil</h3>
+                  <div class="form-group">
+                    <label>Nom complet</label>
+                    <div class="input-row">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                      <input v-model="profileForm.nom" placeholder="Votre nom" class="t-input"/>
+                    </div>
+                  </div>
+                  <div class="form-group">
+                    <label>Email</label>
+                    <div class="input-row">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                      <input v-model="profileForm.email" type="email" placeholder="votre@email.com" class="t-input"/>
+                    </div>
+                  </div>
+                  <div class="profile-actions">
+                    <button class="btn-cancel" @click="resetProfile">Annuler</button>
+                    <button class="btn-primary" @click="saveProfile" :disabled="isLoading">
+                      <span v-if="!isLoading">💾 Sauvegarder</span>
+                      <div v-else class="spin"></div>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </transition>
+    </main>
+
+    <!-- ====== MODAL CLASSROOM DETAIL ====== -->
+    <transition name="modal">
+      <div class="modal-overlay" v-if="classroomDetail.show" @click.self="classroomDetail.show = false">
+        <div class="modal-box modal-lg">
+          <div class="modal-header">
+            <h3>🏛️ {{ classroomDetail.cls?.name }}</h3>
+            <button class="modal-close" @click="classroomDetail.show = false">✕</button>
+          </div>
+          <div class="modal-body">
+            <div class="cls-detail-grid">
+
+              <!-- Teacher info -->
+              <div class="detail-section">
+                <h4 class="section-title">🧑‍🏫 Enseignant responsable</h4>
+                <div class="teacher-detail-card" v-if="classroomDetail.teacher">
+                  <div class="teacher-big-avatar">{{ classroomDetail.teacher?.nom?.charAt(0) }}</div>
+                  <div>
+                    <div class="teacher-big-name">{{ classroomDetail.teacher?.nom }}</div>
+                    <div class="teacher-big-email">{{ classroomDetail.teacher?.email }}</div>
+                    <button class="btn-contact" @click="contactTeacher(classroomDetail.teacher)">
+                      💬 Contacter
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Course info -->
+              <div class="detail-section">
+                <h4 class="section-title">📚 Cours associé</h4>
+                <div class="course-detail-card" v-if="classroomDetail.course" @click="openCourseView(classroomDetail.course); classroomDetail.show = false" style="cursor:pointer">
+                  <div class="course-big-icon">📖</div>
+                  <div>
+                    <div class="course-big-title">{{ classroomDetail.course?.title }}</div>
+                    <div class="course-big-desc">{{ classroomDetail.course?.description }}</div>
+                    <span class="btn-open-course">Ouvrir le cours →</span>
+                  </div>
+                </div>
+                <div class="empty-state" v-else>Aucun cours associé</div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+    </transition>
+
+    <!-- ====== MODAL COURSE VIEW (PLEIN ÉCRAN) ====== -->
+    <transition name="modal">
+      <div class="modal-overlay fullscreen-overlay" v-if="courseView.show" @click.self="courseView.show = false">
+        <div class="modal-box modal-fullscreen">
+          <div class="modal-header">
+            <div style="display:flex;align-items:center;gap:10px">
+              <span style="font-size:1.4rem">📚</span>
+              <div>
+                <h3>{{ courseView.course?.title }}</h3>
+                <p style="font-size:0.75rem;color:rgba(255,255,255,0.35)">
+                  par {{ courseView.course?.teacherName }} · {{ courseView.slides.length }} slide(s)
+                </p>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <button class="btn-download" @click="downloadCourse" title="Télécharger le cours">
+                ⬇️ Télécharger
+              </button>
+              <button class="modal-close" @click="courseView.show = false">✕</button>
+            </div>
+          </div>
+
+          <div class="modal-body" style="padding:0;overflow:hidden">
+            <div class="course-view-layout">
+
+              <!-- Slides sidebar -->
+              <div class="slides-sidebar">
+                <div class="slides-sidebar-header">
+                  <span>Slides ({{ courseView.slides.length }})</span>
+                </div>
+                <div class="slides-sidebar-list">
+                  <div v-for="slide in courseView.slides" :key="slide.id"
+                    :class="['slide-thumb', { active: courseView.activeSlide?.id === slide.id }]"
+                    @click="selectCourseSlide(slide)">
+                    <div class="slide-thumb-pos">#{{ slide.position + 1 }}</div>
+                    <div class="slide-thumb-info">
+                      <div class="slide-thumb-title">{{ slide.title }}</div>
+                      <div class="slide-thumb-preview">{{ slide.contentText?.substring(0,35) || '...' }}</div>
+                    </div>
+                    <div class="slide-thumb-3d" v-if="slide.object3dUrl">🧊</div>
+                  </div>
+                  <div class="empty-state" v-if="!courseView.slides.length">Aucune slide</div>
+                </div>
+              </div>
+
+              <!-- Main viewer -->
+              <div class="course-view-main">
+                <div v-if="courseView.activeSlide" class="slide-view">
+                  <div class="slide-3d-area" v-if="courseView.activeSlide.object3dUrl">
+                    <ThreeViewer :modelUrl="courseView.activeSlide.object3dUrl" :autoRotate="true"/>
+                  </div>
+                  <div class="slide-no-3d" v-else>
+                    <div style="font-size:3rem">📄</div>
+                    <p>Pas de modèle 3D pour cette slide</p>
+                  </div>
+                  <div class="slide-info-panel">
+                    <div class="slide-info-header">
+                      <h3 class="slide-info-title">{{ courseView.activeSlide.title }}</h3>
+                      <span class="slide-info-pos">Slide {{ (courseView.activeSlide.position || 0) + 1 }} / {{ courseView.slides.length }}</span>
+                    </div>
+                    <p class="slide-info-content">{{ courseView.activeSlide.contentText || 'Aucun contenu' }}</p>
+                    <div class="slide-nav">
+                      <button class="slide-nav-btn"
+                        :disabled="!courseView.activeSlide || courseView.activeSlide.position === 0"
+                        @click="navigateCourseSlide(-1)">← Précédente</button>
+                      <div class="slide-dots">
+                        <span v-for="s in courseView.slides" :key="s.id"
+                          :class="['dot', { active: s.id === courseView.activeSlide?.id }]"
+                          @click="selectCourseSlide(s)"></span>
+                      </div>
+                      <button class="slide-nav-btn"
+                        :disabled="!courseView.activeSlide || courseView.activeSlide.position >= courseView.slides.length - 1"
+                        @click="navigateCourseSlide(1)">Suivante →</button>
+                    </div>
+                  </div>
+                </div>
+                <div class="course-view-empty" v-else>
+                  <div style="font-size:3rem;margin-bottom:1rem">📚</div>
+                  <h3>{{ courseView.course?.title }}</h3>
+                  <p style="color:rgba(255,255,255,0.4);margin-top:8px">
+                    {{ courseView.slides.length > 0 ? '← Sélectionnez une slide' : 'Aucune slide pour ce cours' }}
+                  </p>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+    </transition>
+
+    <!-- Toast -->
+    <transition name="toast">
+      <div class="toast" v-if="toast.show" :class="toast.type">
+        {{ toast.type === 'success' ? '✅' : '❌' }} {{ toast.msg }}
+      </div>
+    </transition>
+
+  </div>
+</template>
+
+<script setup>
+import { ref, computed, onMounted } from 'vue'
+import api from '../services/api.js'
+import ThreeViewer from './ThreeViewer.vue'
+
+const sidebarCollapsed = ref(false)
+const activeView = ref('overview')
+const isLoading = ref(false)
+const currentTime = ref('')
+const inviteCode = ref('')
+
+const currentStudent = ref({ id: null, nom: '', email: '', role: '' })
+const myClassrooms = ref([])
+const myCourses = ref([])
+const allCourses = ref([])
+const toast = ref({ show: false, msg: '', type: 'success' })
+
+const classroomDetail = ref({ show: false, cls: null, teacher: null, course: null })
+const courseView = ref({ show: false, course: null, slides: [], activeSlide: null })
+
+const messageForm = ref({ teacherEmail: '', subject: '', body: '' })
+const profileForm = ref({ nom: '', email: '' })
+
+// ─── Icons ───────────────────────────────────────────────
+const iGrid    = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>`
+const iClass   = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>`
+const iBook    = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>`
+const iMsg     = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`
+const iProfile = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`
+
+const navItems = computed(() => [
+  { id: 'overview',    label: 'Vue globale',   icon: iGrid },
+  { id: 'classrooms',  label: 'Mes Classes',   icon: iClass,  badge: myClassrooms.value.length || null },
+  { id: 'courses',     label: 'Mes Cours',     icon: iBook,   badge: myCourses.value.length || null },
+  { id: 'messages',    label: 'Messages',      icon: iMsg },
+  { id: 'profile',     label: 'Mon Profil',    icon: iProfile },
+])
+
+const currentPageTitle = computed(() => ({
+  overview: 'Vue globale', classrooms: 'Mes Classes',
+  courses: 'Mes Cours', messages: 'Messages', profile: 'Mon Profil'
+})[activeView.value] || '')
+
+const studentInitial = computed(() => currentStudent.value.nom?.charAt(0)?.toUpperCase() || 'S')
+
+const statsCards = computed(() => [
+  { label: 'Mes classes',  val: myClassrooms.value.length, pct: 60, color: '#34d399', bg: 'rgba(52,211,153,0.1)',  icon: iClass },
+  { label: 'Mes cours',    val: myCourses.value.length,    pct: 70, color: '#60a5fa', bg: 'rgba(96,165,250,0.1)',  icon: iBook },
+  { label: 'Total slides', val: myCourses.value.reduce((a,c) => a + (c.slideCount||0), 0), pct: 50, color: '#a78bfa', bg: 'rgba(167,139,250,0.1)', icon: iGrid },
+  { label: 'Enseignants',  val: myTeachers.value.length,   pct: 40, color: '#f472b6', bg: 'rgba(244,114,182,0.1)', icon: iProfile },
+])
+
+const myTeachers = computed(() => {
+  const map = new Map()
+  allCourses.value.forEach(c => {
+    if (c.teacherName && !map.has(c.teacherName)) {
+      map.set(c.teacherName, { nom: c.teacherName, email: '' })
+    }
+  })
+  return Array.from(map.values())
+})
+
+function getCourseOfClass(cls) {
+  return allCourses.value.find(c => c.id === cls?.course?.id || c.id === cls?.courseId)
+}
+
+function getTeacherOfClass(cls) {
+  const course = getCourseOfClass(cls)
+  return course?.teacherName || null
+}
+
+function showToast(msg, type = 'success') {
+  toast.value = { show: true, msg, type }
+  setTimeout(() => toast.value.show = false, 3000)
+}
+
+// ─── Load data ────────────────────────────────────────────
+async function loadStudent() {
+  try {
+    const res = await api.get('/users/me')
+    currentStudent.value = res.data
+    profileForm.value = { nom: res.data.nom, email: res.data.email }
+  } catch {
+    const email = localStorage.getItem('userName')
+    currentStudent.value = { nom: email?.split('@')[0] || 'Student', email: email || '', role: 'STUDENT' }
+    profileForm.value = { nom: currentStudent.value.nom, email: currentStudent.value.email }
+  }
+}
+
+async function loadMyClassrooms() {
+  try {
+    const res = await api.get('/classrooms/my-enrollments')
+    myClassrooms.value = res.data
+  } catch {
+    myClassrooms.value = []
+  }
+}
+
+async function loadMyCourses() {
+  try {
+    const res = await api.get('/courses/my-enrolled')
+    myCourses.value = res.data
+    allCourses.value = res.data
+  } catch {
+    try {
+      const res = await api.get('/courses')
+      allCourses.value = res.data
+    } catch {}
+  }
+}
+
+// ─── Join classroom ───────────────────────────────────────
+async function joinByCode() {
+  if (!inviteCode.value) return
+  isLoading.value = true
+  try {
+    const res = await api.post('/classrooms/join', { code: inviteCode.value.toUpperCase() })
+    showToast('🎉 ' + (res.data.message || 'Classe rejointe avec succès !'))
+    inviteCode.value = ''
+    await loadMyClassrooms()
+    await loadMyCourses()
+  } catch (err) {
+    if (err.response?.status === 404) showToast('Code invalide — vérifiez le code', 'error')
+    else showToast('Erreur lors de l\'inscription', 'error')
+  } finally {
+    isLoading.value = false
+  }
+}
+
+// ─── Classroom detail ─────────────────────────────────────
+async function openClassroomDetail(cls) {
+  const course = getCourseOfClass(cls)
+  const teacherName = getTeacherOfClass(cls)
+  classroomDetail.value = {
+    show: true, cls,
+    teacher: teacherName ? { nom: teacherName, email: '' } : null,
+    course: course || null
+  }
+}
+
+// ─── Course view ──────────────────────────────────────────
+async function openCourseView(course) {
+  courseView.value = { show: true, course, slides: [], activeSlide: null }
+  try {
+    const res = await api.get(`/courses/${course.id}/slides`)
+    courseView.value.slides = res.data
+    if (res.data.length > 0) {
+      setTimeout(() => { courseView.value.activeSlide = res.data[0] }, 150)
+    }
+  } catch {
+    courseView.value.slides = []
+  }
+}
+
+function selectCourseSlide(slide) {
+  courseView.value.activeSlide = null
+  setTimeout(() => { courseView.value.activeSlide = slide }, 80)
+}
+
+function navigateCourseSlide(direction) {
+  const slides = courseView.value.slides
+  const currentIndex = slides.findIndex(s => s.id === courseView.value.activeSlide?.id)
+  const newIndex = currentIndex + direction
+  if (newIndex >= 0 && newIndex < slides.length) {
+    selectCourseSlide(slides[newIndex])
+  }
+}
+
+function downloadCourse() {
+  const course = courseView.value.course
+  const slides = courseView.value.slides
+  if (!course) return
+
+  let content = `COURS: ${course.title}\n`
+  content += `Enseignant: ${course.teacherName}\n`
+  content += `Description: ${course.description || 'N/A'}\n\n`
+  content += `${'='.repeat(50)}\n\n`
+
+  slides.forEach((slide, i) => {
+    content += `SLIDE ${i + 1}: ${slide.title}\n`
+    content += `${'-'.repeat(30)}\n`
+    if (slide.contentText) content += `${slide.contentText}\n`
+    if (slide.object3dUrl) content += `Modèle 3D: ${slide.object3dUrl}\n`
+    content += '\n'
+  })
+
+  const blob = new Blob([content], { type: 'text/plain;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `${course.title.replace(/\s+/g, '_')}.txt`
+  a.click()
+  URL.revokeObjectURL(url)
+  showToast('Cours téléchargé !')
+}
+
+// ─── Messages ─────────────────────────────────────────────
+function contactTeacher(teacher) {
+  messageForm.value.teacherEmail = teacher.email
+  classroomDetail.value.show = false
+  activeView.value = 'messages'
+}
+
+function sendEmail() {
+  const { teacherEmail, subject, body } = messageForm.value
+  if (!teacherEmail || !subject || !body) return
+  const mailtoLink = `mailto:${teacherEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+  window.open(mailtoLink)
+  showToast('Client email ouvert !')
+}
+
+// ─── Profile ──────────────────────────────────────────────
+function resetProfile() {
+  profileForm.value = { nom: currentStudent.value.nom, email: currentStudent.value.email }
+}
+
+async function saveProfile() {
+  isLoading.value = true
+  try {
+    await api.patch(`/users/${currentStudent.value.id}`, profileForm.value)
+    currentStudent.value = { ...currentStudent.value, ...profileForm.value }
+    localStorage.setItem('userName', profileForm.value.email)
+    showToast('Profil mis à jour !')
+  } catch { showToast('Erreur', 'error') }
+  finally { isLoading.value = false }
+}
+
+function logout() { localStorage.clear(); window.location.href = '/login' }
+
+onMounted(async () => {
+  await loadStudent()
+  await loadMyClassrooms()
+  await loadMyCourses()
+  const tick = () => {
+    currentTime.value = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+  }
+  tick(); setInterval(tick, 60000)
+})
+</script>
+
+<style scoped>
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap');
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+.student-root { display: flex; min-height: 100vh; background: #06091a; font-family: 'DM Sans', sans-serif; color: #fff; }
+
+/* SIDEBAR */
+.sidebar { width: 240px; min-height: 100vh; background: rgba(255,255,255,0.025); border-right: 1px solid rgba(52,211,153,0.1); display: flex; flex-direction: column; transition: width 0.3s cubic-bezier(.4,0,.2,1); position: sticky; top: 0; height: 100vh; overflow: hidden; }
+.sidebar.collapsed { width: 64px; }
+.sidebar-header { padding: 1.1rem 1rem; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.05); }
+.brand { display: flex; align-items: center; gap: 9px; overflow: hidden; }
+.brand-icon { width: 34px; height: 34px; background: rgba(52,211,153,0.1); border: 1px solid rgba(52,211,153,0.25); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.brand-text { font-family: 'Syne', sans-serif; font-size: 1.05rem; font-weight: 800; white-space: nowrap; }
+.brand-text em { color: #34d399; font-style: normal; }
+.collapse-btn { background: none; border: none; cursor: pointer; color: rgba(255,255,255,0.3); padding: 4px; border-radius: 6px; transition: all 0.2s; flex-shrink: 0; }
+.collapse-btn:hover { color: #fff; }
+.student-badge { margin: 0.7rem 1rem; padding: 5px 10px; background: rgba(52,211,153,0.08); border: 1px solid rgba(52,211,153,0.18); border-radius: 20px; font-size: 0.72rem; color: #6ee7b7; display: flex; align-items: center; gap: 6px; width: fit-content; }
+.badge-dot { width: 6px; height: 6px; border-radius: 50%; background: #34d399; animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+.sidebar-nav { flex: 1; padding: 0.5rem 0; overflow-y: auto; }
+.nav-section-label { padding: 0.4rem 1rem; font-size: 0.65rem; font-weight: 600; color: rgba(255,255,255,0.2); letter-spacing: 0.1em; text-transform: uppercase; }
+.nav-item { width: 100%; display: flex; align-items: center; gap: 9px; padding: 0.6rem 1rem; background: none; border: none; cursor: pointer; color: rgba(255,255,255,0.4); font-family: 'DM Sans', sans-serif; font-size: 0.85rem; font-weight: 500; transition: all 0.2s; white-space: nowrap; overflow: hidden; }
+.nav-item:hover { color: #fff; background: rgba(52,211,153,0.05); }
+.nav-item.active { color: #34d399; background: rgba(52,211,153,0.08); border-right: 2px solid #34d399; }
+.nav-icon { flex-shrink: 0; display: flex; }
+.nav-badge { margin-left: auto; background: rgba(52,211,153,0.15); color: #34d399; font-size: 0.68rem; padding: 2px 7px; border-radius: 10px; }
+.sidebar-footer { padding: 0.9rem 1rem; border-top: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; gap: 8px; }
+.student-info { display: flex; align-items: center; gap: 8px; flex: 1; overflow: hidden; }
+.student-avatar-sm { width: 30px; height: 30px; border-radius: 50%; background: linear-gradient(135deg, #34d399, #059669); display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700; color: #fff; flex-shrink: 0; }
+.student-name-sm { font-size: 0.8rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.student-role-sm { font-size: 0.68rem; color: rgba(255,255,255,0.3); }
+.logout-btn { background: none; border: none; cursor: pointer; color: rgba(255,255,255,0.25); padding: 5px; border-radius: 7px; transition: all 0.2s; flex-shrink: 0; }
+.logout-btn:hover { background: rgba(239,68,68,0.1); color: #f87171; }
+
+/* MAIN */
+.main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.topbar { display: flex; align-items: center; justify-content: space-between; padding: 1.1rem 2rem; border-bottom: 1px solid rgba(255,255,255,0.05); background: rgba(6,9,26,0.85); backdrop-filter: blur(10px); position: sticky; top: 0; z-index: 10; }
+.page-title { font-family: 'Syne', sans-serif; font-size: 1.15rem; font-weight: 700; }
+.breadcrumb { font-size: 0.72rem; color: rgba(255,255,255,0.28); margin-top: 2px; }
+.topbar-right { display: flex; align-items: center; gap: 1rem; }
+.topbar-time { font-size: 0.8rem; color: rgba(255,255,255,0.28); }
+
+/* VIEW */
+.view { padding: 1.7rem 2rem; animation: fadeUp 0.35s ease; }
+@keyframes fadeUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:none; } }
+
+/* WELCOME */
+.welcome-banner { background: linear-gradient(135deg, rgba(52,211,153,0.1), rgba(16,185,129,0.06)); border: 1px solid rgba(52,211,153,0.15); border-radius: 18px; padding: 1.8rem 2rem; display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+.welcome-sub { font-size: 0.82rem; color: rgba(255,255,255,0.4); margin-bottom: 4px; }
+.welcome-name { font-family: 'Syne', sans-serif; font-size: 1.6rem; font-weight: 800; margin-bottom: 8px; background: linear-gradient(90deg, #34d399, #6ee7b7); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.welcome-desc { font-size: 0.85rem; color: rgba(255,255,255,0.5); margin-bottom: 1rem; }
+.welcome-desc strong { color: #34d399; }
+.btn-join-banner { padding: 8px 18px; background: linear-gradient(135deg, #34d399, #059669); border: none; border-radius: 8px; color: #fff; font-family: 'Syne', sans-serif; font-size: 0.82rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+.btn-join-banner:hover { box-shadow: 0 4px 14px rgba(52,211,153,0.3); transform: translateY(-1px); }
+
+/* STATS */
+.stats-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 1rem; margin-bottom: 1.5rem; }
+.stat-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 14px; padding: 1.1rem; animation: fadeUp 0.45s ease both; transition: transform 0.2s; }
+.stat-card:hover { transform: translateY(-2px); }
+.stat-top { margin-bottom: 0.7rem; }
+.stat-icon-wrap { width: 36px; height: 36px; border-radius: 9px; display: flex; align-items: center; justify-content: center; }
+.stat-num { font-family: 'Syne', sans-serif; font-size: 1.7rem; font-weight: 700; margin-bottom: 2px; }
+.stat-lbl { font-size: 0.76rem; color: rgba(255,255,255,0.38); margin-bottom: 0.7rem; }
+.stat-bar { height: 3px; background: rgba(255,255,255,0.06); border-radius: 2px; }
+.stat-bar-inner { height: 100%; border-radius: 2px; }
+
+/* OVERVIEW ROW */
+.overview-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.ov-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 14px; padding: 1.2rem; }
+.ov-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+.ov-card-header h3 { font-family: 'Syne', sans-serif; font-size: 0.9rem; font-weight: 600; }
+.btn-link { background: none; border: none; color: #34d399; cursor: pointer; font-size: 0.78rem; }
+
+.class-mini-list { display: flex; flex-direction: column; gap: 6px; }
+.class-mini { display: flex; align-items: center; gap: 10px; padding: 0.6rem 0.8rem; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.04); border-radius: 9px; cursor: pointer; transition: all 0.2s; }
+.class-mini:hover { border-color: rgba(52,211,153,0.2); background: rgba(52,211,153,0.04); }
+.class-mini-icon { font-size: 1.1rem; }
+.class-mini-info { flex: 1; min-width: 0; }
+.class-mini-name { font-size: 0.84rem; font-weight: 500; }
+.class-mini-teacher { font-size: 0.72rem; color: rgba(255,255,255,0.35); }
+.course-mini-list { display: flex; flex-direction: column; gap: 6px; }
+.course-mini { display: flex; align-items: center; gap: 10px; padding: 0.6rem 0.8rem; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.04); border-radius: 9px; cursor: pointer; transition: all 0.2s; }
+.course-mini:hover { border-color: rgba(96,165,250,0.2); }
+.course-mini-icon { font-size: 1.1rem; }
+.course-mini-info { flex: 1; min-width: 0; }
+.course-mini-title { font-size: 0.84rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.course-mini-teacher { font-size: 0.72rem; color: rgba(255,255,255,0.35); }
+.course-mini-slides { font-size: 0.72rem; color: rgba(255,255,255,0.3); flex-shrink: 0; }
+
+/* JOIN SECTION */
+.join-section { margin-bottom: 1.5rem; }
+.join-card { background: linear-gradient(135deg, rgba(52,211,153,0.08), rgba(16,185,129,0.04)); border: 1px solid rgba(52,211,153,0.2); border-radius: 16px; padding: 1.5rem; display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap; }
+.join-icon { font-size: 2.5rem; flex-shrink: 0; }
+.join-content { flex: 1; min-width: 200px; }
+.join-content h3 { font-family: 'Syne', sans-serif; font-size: 1rem; font-weight: 700; margin-bottom: 4px; }
+.join-content p { font-size: 0.82rem; color: rgba(255,255,255,0.45); }
+.join-input-wrap { display: flex; gap: 8px; flex-shrink: 0; }
+.join-input { padding: 0.65rem 1rem; background: rgba(255,255,255,0.06); border: 1px solid rgba(52,211,153,0.25); border-radius: 10px; color: #fff; font-family: 'Syne', sans-serif; font-size: 1rem; font-weight: 700; letter-spacing: 0.1em; outline: none; width: 150px; text-align: center; }
+.join-input:focus { border-color: #34d399; }
+.join-input::placeholder { color: rgba(255,255,255,0.2); font-size: 0.85rem; letter-spacing: 0; }
+.btn-join { padding: 0.65rem 1.2rem; background: linear-gradient(135deg, #34d399, #059669); border: none; border-radius: 10px; color: #fff; font-family: 'Syne', sans-serif; font-size: 0.85rem; font-weight: 700; cursor: pointer; transition: all 0.2s; min-width: 100px; display: flex; align-items: center; justify-content: center; }
+.btn-join:hover:not(:disabled) { box-shadow: 0 4px 14px rgba(52,211,153,0.3); }
+.btn-join:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* SECTION TITLE */
+.section-title-row { margin-bottom: 1rem; }
+.section-title { font-family: 'Syne', sans-serif; font-size: 1rem; font-weight: 600; }
+
+/* CLASSROOMS GRID */
+.classrooms-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px,1fr)); gap: 1rem; }
+.classroom-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 14px; padding: 1.2rem; cursor: pointer; animation: fadeUp 0.4s ease both; transition: all 0.25s; }
+.classroom-card:hover { transform: translateY(-3px); border-color: rgba(52,211,153,0.25); box-shadow: 0 8px 24px rgba(52,211,153,0.07); }
+.cls-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem; }
+.cls-avatar { font-size: 1.8rem; }
+.cls-badge { font-size: 0.68rem; padding: 3px 8px; background: rgba(52,211,153,0.1); border: 1px solid rgba(52,211,153,0.2); border-radius: 6px; color: #34d399; }
+.cls-name { font-family: 'Syne', sans-serif; font-size: 1rem; font-weight: 700; margin-bottom: 8px; }
+.cls-teacher-row { display: flex; align-items: center; gap: 7px; margin-bottom: 8px; }
+.teacher-mini-avatar { width: 22px; height: 22px; border-radius: 50%; background: linear-gradient(135deg, #a78bfa, #7c3aed); display: flex; align-items: center; justify-content: center; font-size: 0.65rem; font-weight: 700; color: #fff; flex-shrink: 0; }
+.cls-teacher-name { font-size: 0.78rem; color: rgba(255,255,255,0.5); }
+.cls-course-tag { font-size: 0.75rem; color: rgba(255,255,255,0.4); margin-bottom: 0.8rem; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 6px; padding: 4px 8px; width: fit-content; }
+.cls-footer { display: flex; justify-content: space-between; align-items: center; padding-top: 0.8rem; border-top: 1px solid rgba(255,255,255,0.06); }
+.cls-code { font-size: 0.72rem; color: rgba(255,255,255,0.25); }
+.cls-code strong { color: #34d399; }
+.cls-view { font-size: 0.75rem; color: #34d399; }
+
+/* COURSES GRID */
+.courses-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px,1fr)); gap: 1rem; }
+.course-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 14px; padding: 1.2rem; cursor: pointer; animation: fadeUp 0.4s ease both; transition: all 0.25s; }
+.course-card:hover { transform: translateY(-3px); border-color: rgba(96,165,250,0.25); }
+.course-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem; }
+.course-card-icon { font-size: 1.6rem; }
+.course-card-teacher { font-size: 0.72rem; color: rgba(255,255,255,0.35); background: rgba(255,255,255,0.04); padding: 2px 8px; border-radius: 6px; }
+.course-card-title { font-family: 'Syne', sans-serif; font-size: 0.95rem; font-weight: 700; margin-bottom: 0.4rem; }
+.course-card-desc { font-size: 0.78rem; color: rgba(255,255,255,0.38); line-height: 1.5; margin-bottom: 1rem; }
+.course-card-footer { display: flex; justify-content: space-between; align-items: center; padding-top: 0.8rem; border-top: 1px solid rgba(255,255,255,0.06); }
+.slide-count { font-size: 0.75rem; color: rgba(255,255,255,0.35); }
+.btn-view-course { font-size: 0.75rem; color: #60a5fa; background: none; border: none; cursor: pointer; }
+
+/* MESSAGES */
+.messages-container { max-width: 700px; }
+.messages-header { margin-bottom: 1.5rem; }
+.messages-header h3 { font-family: 'Syne', sans-serif; font-size: 1.1rem; font-weight: 700; margin-bottom: 4px; }
+.messages-header p { font-size: 0.85rem; color: rgba(255,255,255,0.4); }
+.message-form-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 16px; padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem; }
+.form-group { display: flex; flex-direction: column; gap: 5px; }
+.form-group label { font-size: 0.78rem; font-weight: 500; color: rgba(255,255,255,0.45); }
+.msg-input { width: 100%; padding: 0.65rem 0.9rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.09); border-radius: 10px; color: #fff; font-family: 'DM Sans', sans-serif; font-size: 0.88rem; outline: none; transition: border-color 0.2s; }
+.msg-input:focus { border-color: rgba(52,211,153,0.4); }
+.msg-input::placeholder { color: rgba(255,255,255,0.2); }
+select.msg-input { cursor: pointer; }
+select.msg-input option { background: #0e1228; }
+.msg-textarea { width: 100%; padding: 0.65rem 0.9rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.09); border-radius: 10px; color: #fff; font-family: 'DM Sans', sans-serif; font-size: 0.88rem; outline: none; resize: vertical; transition: border-color 0.2s; }
+.msg-textarea:focus { border-color: rgba(52,211,153,0.4); }
+.msg-textarea::placeholder { color: rgba(255,255,255,0.2); }
+.message-actions { display: flex; justify-content: flex-end; }
+.btn-send { padding: 0.65rem 1.5rem; background: linear-gradient(135deg, #34d399, #059669); border: none; border-radius: 10px; color: #fff; font-family: 'Syne', sans-serif; font-size: 0.88rem; font-weight: 700; cursor: pointer; transition: all 0.2s; }
+.btn-send:hover:not(:disabled) { box-shadow: 0 4px 14px rgba(52,211,153,0.3); }
+.btn-send:disabled { opacity: 0.4; cursor: not-allowed; }
+.message-info { background: rgba(52,211,153,0.05); border: 1px solid rgba(52,211,153,0.1); border-radius: 8px; padding: 10px 14px; }
+.message-info p { font-size: 0.78rem; color: rgba(255,255,255,0.35); }
+
+/* PROFILE */
+.profile-page { width: 100%; }
+.profile-cover { height: 160px; border-radius: 16px; background: linear-gradient(135deg, rgba(52,211,153,0.15), rgba(16,185,129,0.1)); border: 1px solid rgba(52,211,153,0.12); position: relative; margin-bottom: 80px; overflow: visible; }
+.profile-cover-bg { position: absolute; inset: 0; background: radial-gradient(ellipse at 30% 50%, rgba(52,211,153,0.15) 0%, transparent 70%); border-radius: 16px; }
+.profile-avatar-wrap { position: absolute; bottom: -50px; left: 2rem; }
+.profile-ring { width: 88px; height: 88px; border-radius: 50%; border: 3px solid #34d399; background: #0e1228; display: flex; align-items: center; justify-content: center; }
+.profile-avatar-lg { font-family: 'Syne', sans-serif; font-size: 2rem; font-weight: 800; color: #34d399; }
+.profile-content { display: grid; grid-template-columns: 240px 1fr; gap: 1.5rem; width: 100%; }
+.profile-info-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 14px; padding: 1.4rem; text-align: center; }
+.pi-avatar { width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg,#34d399,#059669); display: flex; align-items: center; justify-content: center; font-family: 'Syne', sans-serif; font-size: 1.5rem; font-weight: 700; color: #fff; margin: 0 auto 0.8rem; }
+.pi-name { font-family: 'Syne', sans-serif; font-size: 1rem; font-weight: 700; margin-bottom: 3px; }
+.pi-email { font-size: 0.78rem; color: rgba(255,255,255,0.38); margin-bottom: 0.7rem; }
+.role-badge-student { font-size: 0.68rem; font-weight: 600; padding: 3px 9px; border-radius: 6px; background: rgba(52,211,153,0.12); color: #34d399; }
+.pi-stats { display: flex; align-items: center; justify-content: center; gap: 1.2rem; margin-top: 1.1rem; padding-top: 0.9rem; border-top: 1px solid rgba(255,255,255,0.06); }
+.pi-stat { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.pi-val { font-family: 'Syne', sans-serif; font-size: 1.1rem; font-weight: 700; color: #34d399; }
+.pi-lbl { font-size: 0.68rem; color: rgba(255,255,255,0.3); }
+.pi-div { width: 1px; height: 28px; background: rgba(255,255,255,0.08); }
+.profile-edit-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 14px; padding: 1.5rem; width: 100%; }
+.edit-title { font-family: 'Syne', sans-serif; font-size: 0.95rem; font-weight: 600; margin-bottom: 1.2rem; }
+.input-row { display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.09); border-radius: 9px; padding: 0.62rem 0.85rem; transition: border-color 0.2s; }
+.input-row:focus-within { border-color: rgba(52,211,153,0.4); }
+.input-row svg { color: rgba(255,255,255,0.28); flex-shrink: 0; }
+.t-input { background: none; border: none; outline: none; color: #fff; font-family: 'DM Sans', sans-serif; font-size: 0.86rem; flex: 1; }
+.t-input::placeholder { color: rgba(255,255,255,0.2); }
+.profile-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 1.2rem; }
+
+/* BUTTONS */
+.btn-primary { display: flex; align-items: center; gap: 5px; padding: 0.5rem 1.1rem; background: linear-gradient(135deg, #34d399, #059669); border: none; border-radius: 9px; color: #fff; font-family: 'Syne', sans-serif; font-size: 0.83rem; font-weight: 600; cursor: pointer; transition: all 0.2s; justify-content: center; }
+.btn-primary:hover { box-shadow: 0 4px 14px rgba(52,211,153,0.3); }
+.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+.btn-cancel { padding: 0.6rem 1.1rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.09); border-radius: 9px; color: rgba(255,255,255,0.55); font-family: 'DM Sans', sans-serif; font-size: 0.85rem; cursor: pointer; transition: all 0.2s; }
+.btn-cancel:hover { background: rgba(255,255,255,0.08); color: #fff; }
+
+/* EMPTY */
+.empty-state { text-align: center; padding: 2rem; color: rgba(255,255,255,0.22); font-size: 0.84rem; }
+.empty-state.full { grid-column: 1/-1; }
+
+/* MODALS */
+.modal-overlay { position: fixed; inset: 0; background: rgba(6,9,26,0.88); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 1rem; }
+.fullscreen-overlay { padding: 0.5rem; }
+.modal-box { background: #0e1228; border: 1px solid rgba(52,211,153,0.12); border-radius: 18px; width: 100%; max-width: 500px; animation: modalPop 0.3s cubic-bezier(0.34,1.56,0.64,1); overflow: hidden; }
+.modal-lg { max-width: 680px; }
+.modal-fullscreen { max-width: 1100px; max-height: 92vh; display: flex; flex-direction: column; }
+@keyframes modalPop { from { opacity:0; transform:scale(0.88) translateY(20px); } to { opacity:1; transform:none; } }
+.modal-header { display: flex; justify-content: space-between; align-items: center; padding: 1.1rem 1.3rem; border-bottom: 1px solid rgba(255,255,255,0.06); flex-shrink: 0; }
+.modal-header h3 { font-family: 'Syne', sans-serif; font-size: 0.95rem; font-weight: 600; }
+.modal-close { background: none; border: none; cursor: pointer; color: rgba(255,255,255,0.3); font-size: 0.95rem; width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+.modal-close:hover { background: rgba(255,255,255,0.06); color: #fff; }
+.modal-body { padding: 1.3rem; overflow-y: auto; flex: 1; }
+
+/* CLASSROOM DETAIL */
+.cls-detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.detail-section { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 1rem; }
+.section-title { font-family: 'Syne', sans-serif; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.9rem; color: rgba(255,255,255,0.65); }
+.teacher-detail-card { display: flex; align-items: flex-start; gap: 12px; }
+.teacher-big-avatar { width: 48px; height: 48px; border-radius: 50%; background: linear-gradient(135deg,#a78bfa,#7c3aed); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: 700; color: #fff; flex-shrink: 0; }
+.teacher-big-name { font-family: 'Syne', sans-serif; font-size: 0.95rem; font-weight: 700; margin-bottom: 3px; }
+.teacher-big-email { font-size: 0.78rem; color: rgba(255,255,255,0.4); margin-bottom: 8px; }
+.btn-contact { padding: 5px 12px; background: rgba(52,211,153,0.1); border: 1px solid rgba(52,211,153,0.2); border-radius: 7px; color: #34d399; font-size: 0.78rem; cursor: pointer; transition: all 0.2s; }
+.btn-contact:hover { background: rgba(52,211,153,0.18); }
+.course-detail-card { display: flex; align-items: flex-start; gap: 12px; padding: 8px; border-radius: 8px; transition: background 0.2s; }
+.course-detail-card:hover { background: rgba(255,255,255,0.03); }
+.course-big-icon { font-size: 2rem; flex-shrink: 0; }
+.course-big-title { font-family: 'Syne', sans-serif; font-size: 0.9rem; font-weight: 700; margin-bottom: 4px; }
+.course-big-desc { font-size: 0.75rem; color: rgba(255,255,255,0.4); margin-bottom: 6px; }
+.btn-open-course { font-size: 0.75rem; color: #60a5fa; }
+
+/* COURSE VIEW FULLSCREEN */
+.course-view-layout { display: grid; grid-template-columns: 250px 1fr; height: 80vh; overflow: hidden; }
+.slides-sidebar { border-right: 1px solid rgba(255,255,255,0.06); display: flex; flex-direction: column; background: rgba(255,255,255,0.02); }
+.slides-sidebar-header { display: flex; justify-content: space-between; align-items: center; padding: 0.9rem 1rem; border-bottom: 1px solid rgba(255,255,255,0.06); font-size: 0.82rem; font-weight: 600; color: rgba(255,255,255,0.6); }
+.slides-sidebar-list { flex: 1; overflow-y: auto; padding: 0.5rem; display: flex; flex-direction: column; gap: 4px; }
+.slide-thumb { display: flex; align-items: center; gap: 8px; padding: 0.6rem 0.7rem; border-radius: 8px; cursor: pointer; border: 1px solid transparent; transition: all 0.2s; }
+.slide-thumb:hover { background: rgba(52,211,153,0.05); border-color: rgba(52,211,153,0.1); }
+.slide-thumb.active { background: rgba(52,211,153,0.08); border-color: rgba(52,211,153,0.25); }
+.slide-thumb-pos { font-size: 0.68rem; color: rgba(255,255,255,0.25); min-width: 16px; font-family: 'Syne', sans-serif; font-weight: 700; }
+.slide-thumb-info { flex: 1; min-width: 0; }
+.slide-thumb-title { font-size: 0.8rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.slide-thumb-preview { font-size: 0.7rem; color: rgba(255,255,255,0.3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+.slide-thumb-3d { font-size: 0.8rem; flex-shrink: 0; }
+
+.course-view-main { display: flex; flex-direction: column; overflow: hidden; background: #060918; }
+.course-view-empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; }
+.slide-view { display: flex; flex-direction: column; height: 100%; overflow: hidden; }
+.slide-3d-area { flex: 1; min-height: 0; position: relative; background: #060918; }
+.slide-3d-area :deep(.three-container) { height: 100% !important; min-height: 100% !important; border-radius: 0 !important; }
+.slide-no-3d { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: rgba(255,255,255,0.25); gap: 8px; font-size: 0.85rem; }
+.slide-info-panel { padding: 1rem 1.5rem; border-top: 1px solid rgba(255,255,255,0.06); background: rgba(6,9,26,0.8); flex-shrink: 0; }
+.slide-info-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
+.slide-info-title { font-family: 'Syne', sans-serif; font-size: 1rem; font-weight: 700; }
+.slide-info-pos { font-size: 0.75rem; color: rgba(255,255,255,0.3); }
+.slide-info-content { font-size: 0.85rem; color: rgba(255,255,255,0.5); line-height: 1.6; margin-bottom: 1rem; }
+.slide-nav { display: flex; align-items: center; justify-content: space-between; }
+.slide-nav-btn { padding: 6px 14px; background: rgba(52,211,153,0.1); border: 1px solid rgba(52,211,153,0.2); border-radius: 8px; color: #34d399; font-size: 0.8rem; cursor: pointer; transition: all 0.2s; }
+.slide-nav-btn:hover:not(:disabled) { background: rgba(52,211,153,0.2); }
+.slide-nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.slide-dots { display: flex; gap: 6px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.15); cursor: pointer; transition: all 0.2s; }
+.dot.active { background: #34d399; transform: scale(1.2); }
+
+.btn-download { padding: 6px 14px; background: rgba(52,211,153,0.1); border: 1px solid rgba(52,211,153,0.2); border-radius: 8px; color: #34d399; font-size: 0.82rem; cursor: pointer; transition: all 0.2s; }
+.btn-download:hover { background: rgba(52,211,153,0.2); }
+
+/* SPINNER */
+.spin { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.2); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* TOAST */
+.toast { position: fixed; bottom: 1.5rem; right: 1.5rem; padding: 0.7rem 1.1rem; border-radius: 11px; font-size: 0.83rem; z-index: 200; box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
+.toast.success { background: rgba(52,211,153,0.1); border: 1px solid rgba(52,211,153,0.25); color: #34d399; }
+.toast.error   { background: rgba(239,68,68,0.1);  border: 1px solid rgba(239,68,68,0.25);  color: #f87171; }
+
+/* TRANSITIONS */
+.fade-enter-active,.fade-leave-active { transition: all 0.25s ease; }
+.fade-enter-from,.fade-leave-to { opacity:0; transform:translateY(8px); }
+.modal-enter-active,.modal-leave-active { transition: all 0.25s ease; }
+.modal-enter-from,.modal-leave-to { opacity:0; }
+.toast-enter-active,.toast-leave-active { transition: all 0.3s ease; }
+.toast-enter-from,.toast-leave-to { opacity:0; transform:translateY(10px); }
+
+@media (max-width: 1100px) { .stats-grid { grid-template-columns: repeat(2,1fr); } .profile-content { grid-template-columns: 1fr; } }
+@media (max-width: 768px) { .overview-row { grid-template-columns: 1fr; } .cls-detail-grid { grid-template-columns: 1fr; } .course-view-layout { grid-template-columns: 1fr; } }
+</style>
+ENDOFFILE
